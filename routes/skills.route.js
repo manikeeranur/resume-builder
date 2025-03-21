@@ -1,5 +1,10 @@
 import express from "express";
-import { getSkills, postSkills } from "../controller/skills.controller.js";
+import {
+  deleteSkills,
+  getSkills,
+  postSkills,
+  updateSkills,
+} from "../controller/skills.controller.js";
 
 // import authenticateJWT from "../middleware/authMiddleware.js";
 
@@ -7,8 +12,7 @@ const skillsRouter = express.Router();
 
 skillsRouter.get("/", getSkills);
 skillsRouter.post("/", postSkills);
-// blogRouter.post("/", authenticateJWT, postBlog);
-// blogRouter.put("/:id", putBlog);
-// blogRouter.delete("/:id", deleteBlog);
+skillsRouter.put("/:id", updateSkills);
+skillsRouter.delete("/:id", deleteSkills);
 
 export default skillsRouter;
