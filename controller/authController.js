@@ -7,6 +7,9 @@ import SkillsModel from "../models/skills.model.js";
 import PersonalDetailsModel from "../models/personalDetails.model.js";
 import SocialLinksModel from "../models/socialLinks.model.js";
 
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// Signup
 export const signup = async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -19,12 +22,27 @@ export const signup = async (req, res) => {
     const newUser = new User({ username, email, password: hashedPassword });
 
     await newUser.save();
-    res.status(201).json({ message: "User created successfully" });
+
+    // Generate token
+    const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.status(201).json({
+      message: "User created successfully",
+      token,
+      user: {
+        _id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
+// Login
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -36,93 +54,65 @@ export const login = async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign({ user_id: user.user_id }, process.env.JWT_SECRET, {
+    // Generate token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
       expiresIn: "7d",
     });
 
-    const userDetails = user.toObject();
-    delete userDetails.password;
+    const { password: _, ...userDetails } = user.toObject(); // Remove password from response
 
-    res.status(200).json({ token, userDetails });
+    res.status(200).json({ token, user: userDetails });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
+// Get User Details with all profile-related data
 export const getUserDetails = async (req, res) => {
   try {
     const { user_id } = req.params;
-
-    if (!user_id) {
+    if (!user_id)
       return res.status(400).json({ message: "User ID is required" });
-    }
 
-    const user = await User.findById(user_id).select("-password").lean();
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const user = await User.findOne({ user_id }).select("-password").lean();
 
-    const experience = await ExperienceModel.find({
-      user_id: user.user_id,
-    }).lean();
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    const education = await EducationModel.find({
-      user_id: user.user_id,
-    }).lean();
+    // Fetch related data in parallel
+    const [experience, education, skills, personalDetails, socialLinks] =
+      await Promise.all([
+        ExperienceModel.find({ user_id }).lean(),
+        EducationModel.find({ user_id }).lean(),
+        SkillsModel.find({ user_id }).lean(),
+        PersonalDetailsModel.find({ user_id }).lean(),
+        SocialLinksModel.find({ user_id }).lean(),
+      ]);
 
-    const skills = await SkillsModel.find({
-      user_id: user.user_id,
-    }).lean();
-
-    const personalDetails = await PersonalDetailsModel.find({
-      user_id: user.user_id,
-    }).lean();
-
-    const socialLinks = await SocialLinksModel.find({
-      user_id: user.user_id,
-    }).lean();
-
-    const sanitizedExperience = experience.map(
-      ({ user_id, __v, ...rest }) => rest
-    );
-    const sanitizedEducation = education.map(
-      ({ user_id, __v, ...rest }) => rest
-    );
-
-    const sanitizedSkills = skills.map(({ user_id, __v, ...rest }) => rest);
-
-    const sanitizedPersonalDetails = personalDetails.map(
-      ({ user_id, __v, ...rest }) => rest
-    );
-
-    const sanitizedSocialLinks = socialLinks.map(
-      ({ user_id, __v, ...rest }) => rest
-    );
-
-    const userDetails = {
-      user_id: user.user_id,
-      username: user.username,
-      email: user.email,
-      mobile: socialLinks.length > 0 ? socialLinks[0].whatsapp : null,
-      experience: sanitizedExperience,
-      education: sanitizedEducation,
-      skills: sanitizedSkills,
-      personalDetails: sanitizedPersonalDetails,
-      socialLinks: sanitizedSocialLinks,
-    };
+    // Remove unnecessary fields
+    const sanitizeData = (data) =>
+      data.map(({ __v, user_id, ...rest }) => rest);
 
     res.json({
       message: "User profile fetched successfully",
-      userDetails,
+      userDetails: {
+        ...user,
+        mobile: socialLinks.length > 0 ? socialLinks[0].whatsapp : null,
+        experience: sanitizeData(experience),
+        education: sanitizeData(education),
+        skills: sanitizeData(skills),
+        personalDetails: sanitizeData(personalDetails),
+        socialLinks: sanitizeData(socialLinks),
+      },
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
+// Get Profile of Authenticated User
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select("-password"); // Exclude password
+    const user = await User.findById(req.user.userId).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json({ message: "User profile fetched successfully", user });
@@ -131,25 +121,24 @@ export const getProfile = async (req, res) => {
   }
 };
 
-export default function checkAuth(req, res) {
+// Token Validation Middleware
+export const checkAuth = (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) {
+
+  if (!token)
     return res
       .status(401)
       .json({ isValid: false, message: "No token provided" });
-  }
 
   try {
-    const secretKey = process.env.JWT_SECRET;
-    if (!secretKey) {
+    if (!JWT_SECRET)
       throw new Error("JWT_SECRET is missing in environment variables.");
-    }
 
-    jwt.verify(token, secretKey);
-    return res.status(200).json({ isValid: true });
+    jwt.verify(token, JWT_SECRET);
+    res.status(200).json({ isValid: true });
   } catch (error) {
-    return res
+    res
       .status(403)
       .json({ isValid: false, message: "Invalid or expired token" });
   }
-}
+};

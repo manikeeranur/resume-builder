@@ -11,7 +11,8 @@ import personalDetailsRouter from "./routes/personalDetails.route.js";
 import socialLinksRouter from "./routes/socialLinks.route.js";
 
 const app = express();
-const PORT = 3001;
+// const PORT = 3001;
+const PORT = process.env.PORT || 4000;
 dotenv.config();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
