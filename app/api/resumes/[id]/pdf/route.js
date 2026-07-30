@@ -21,7 +21,12 @@ export async function GET(req, { params }) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1024, height: 1200 });
 
-    const origin = process.env.NEXTAUTH_URL || new URL(req.url).origin;
+    // Prefer the incoming request's own origin — it's always correct,
+    // whereas NEXTAUTH_URL is a manually-set env var that can drift out of
+    // sync with the actual deployment URL (e.g. still pointing at
+    // localhost in production) and would otherwise send Puppeteer to an
+    // unreachable host.
+    const origin = new URL(req.url).origin || process.env.NEXTAUTH_URL;
     await forwardCookies(page, req, origin);
 
     await page.goto(`${origin}/resumes/${params.id}/print`, {

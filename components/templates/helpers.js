@@ -1,3 +1,14 @@
+// How much natural (unscaled, 850px-wide) resume content fits on one A4
+// page of the real PDF export. NOT a naive "A4 height minus margins"
+// calculation — Puppeteer's page.pdf() scales our 1024px viewport down to
+// fit the printable area, which shrinks our content by a factor that isn't
+// exposed anywhere, so this value was calibrated empirically: generate a
+// real PDF, render it to an image, and measure exactly how many natural
+// content px fit on page 1 before it broke to page 2. Verified against two
+// independent resumes (single-page and multi-page) with matching results.
+// Used to preview page breaks in the browser before downloading.
+export const PDF_PAGE_HEIGHT_PX = 1225;
+
 export const SPACING_SCALE = {
   compact: { section: "0.75rem", block: "0.5rem", text: "0.78rem", heading: "1.35rem" },
   comfortable: { section: "1.1rem", block: "0.75rem", text: "0.85rem", heading: "1.6rem" },

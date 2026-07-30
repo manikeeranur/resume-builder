@@ -21,7 +21,8 @@ export async function GET(req, { params }) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1024, height: 1200 });
 
-    const origin = process.env.NEXTAUTH_URL || new URL(req.url).origin;
+    // Prefer the incoming request's own origin — see pdf/route.js for why.
+    const origin = new URL(req.url).origin || process.env.NEXTAUTH_URL;
     await forwardCookies(page, req, origin);
 
     await page.goto(`${origin}/resumes/${params.id}/print`, {

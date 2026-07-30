@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ResumeDocument from "@/components/templates/ResumeDocument";
+import { PDF_PAGE_HEIGHT_PX } from "@/components/templates/helpers";
+
+const PAGE_WIDTH_PX = 850;
 
 async function downloadFile(url, filename) {
   const res = await fetch(url);
@@ -18,10 +21,12 @@ async function downloadFile(url, filename) {
 
 export default function ResumePreviewPage({ resume }) {
   const [downloading, setDownloading] = useState(null);
+  const [pageCount, setPageCount] = useState(1);
   const containerRef = useRef(null);
   const wrapperRef = useRef(null);
+  const measureRef = useRef(null);
 
-  // Mobile only: scale the fixed-width resume to fit the screen, no horizontal scroll.
+  // Mobile only: scale the fixed-width page stack to fit the screen, no horizontal scroll.
   useEffect(() => {
     const scale = () => {
       const container = containerRef.current;
@@ -33,7 +38,7 @@ export default function ResumePreviewPage({ resume }) {
         container.style.transform = "";
         container.style.marginLeft = "";
         wrapper.style.height = "";
-        const naturalWidth = 850;
+        const naturalWidth = PAGE_WIDTH_PX;
         const naturalHeight = container.offsetHeight;
         const factor = vw / naturalWidth;
         container.style.transform = `scale(${factor})`;
@@ -50,7 +55,26 @@ export default function ResumePreviewPage({ resume }) {
       clearTimeout(timer);
       window.removeEventListener("resize", scale);
     };
-  }, [resume]);
+  }, [resume, pageCount]);
+
+  // Estimate how many A4 pages the PDF export will produce, so page breaks
+  // are visible before downloading. Every page-sheet below renders the full
+  // resume internally (just clipped + shifted), so measuring any one of
+  // them gives the true unclipped content height.
+  useEffect(() => {
+    const measure = () => {
+      if (!measureRef.current) return;
+      const height = measureRef.current.scrollHeight;
+      const next = Math.max(1, Math.ceil(height / PDF_PAGE_HEIGHT_PX));
+      setPageCount((prev) => (prev === next ? prev : next));
+    };
+    const timer = setTimeout(measure, 80);
+    window.addEventListener("resize", measure);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", measure);
+    };
+  }, [resume, pageCount]);
 
   const handleDownload = async (format) => {
     setDownloading(format);
@@ -77,7 +101,12 @@ export default function ResumePreviewPage({ resume }) {
               ←
             </Link>
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold text-text sm:text-base">Resume Preview</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="truncate text-sm font-bold text-text sm:text-base">Resume Preview</h1>
+                <span className="shrink-0 rounded-full bg-bg px-2 py-0.5 text-[11px] font-medium text-text-secondary">
+                  {pageCount} page{pageCount > 1 ? "s" : ""}
+                </span>
+              </div>
               <p className="hidden text-xs text-text-secondary sm:block">Review your resume or save a copy</p>
             </div>
           </div>
@@ -114,9 +143,28 @@ export default function ResumePreviewPage({ resume }) {
         </div>
       </div>
 
-      <div ref={wrapperRef} className="overflow-hidden py-8">
+      <div ref={wrapperRef} className="overflow-hidden bg-bg py-8">
         <div ref={containerRef}>
-          <ResumeDocument resume={resume} />
+          <div className="flex flex-col items-center gap-8" style={{ width: PAGE_WIDTH_PX, margin: "0 auto" }}>
+            {Array.from({ length: pageCount }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-1.5">
+                <div
+                  className="relative overflow-hidden bg-white shadow-lg"
+                  style={{ width: PAGE_WIDTH_PX, height: PDF_PAGE_HEIGHT_PX }}
+                >
+                  <div
+                    ref={i === 0 ? measureRef : null}
+                    style={{ position: "absolute", top: -i * PDF_PAGE_HEIGHT_PX, left: 0, width: PAGE_WIDTH_PX }}
+                  >
+                    <ResumeDocument resume={resume} />
+                  </div>
+                </div>
+                <span className="text-[11px] font-medium text-text-secondary">
+                  Page {i + 1} of {pageCount}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </>
