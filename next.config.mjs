@@ -2,8 +2,9 @@
 const nextConfig = {
   experimental: {
     outputFileTracingIncludes: {
-      "/api/resumes/*/pdf": ["./node_modules/@sparticuz/chromium/bin/**/*"],
-      "/api/resumes/*/png": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+      "/api/resumes/[id]/pdf": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+      "/api/resumes/[id]/png": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+      "/api/**/*": ["./node_modules/@sparticuz/chromium/bin/**/*"],
     },
   },
 };

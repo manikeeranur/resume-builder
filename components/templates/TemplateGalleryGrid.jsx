@@ -32,7 +32,7 @@ export default function TemplateGalleryGrid() {
   return (
     <div>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {TEMPLATE_LIST.map((t) => (
           <button
             key={t.id}
