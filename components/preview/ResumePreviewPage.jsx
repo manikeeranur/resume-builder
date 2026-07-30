@@ -2,10 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { IconFileTypePdf, IconFileTypeDoc, IconPhoto } from "@tabler/icons-react";
 import ResumeDocument from "@/components/templates/ResumeDocument";
 import { PDF_PAGE_HEIGHT_PX } from "@/components/templates/helpers";
 
 const PAGE_WIDTH_PX = 850;
+const THUMB_WIDTH_PX = 92;
+const THUMB_SCALE = THUMB_WIDTH_PX / PAGE_WIDTH_PX;
+const THUMB_HEIGHT_PX = Math.round(PDF_PAGE_HEIGHT_PX * THUMB_SCALE);
 
 async function downloadFile(url, filename) {
   const res = await fetch(url);
@@ -22,9 +27,11 @@ async function downloadFile(url, filename) {
 export default function ResumePreviewPage({ resume }) {
   const [downloading, setDownloading] = useState(null);
   const [pageCount, setPageCount] = useState(1);
+  const [activePage, setActivePage] = useState(0);
   const containerRef = useRef(null);
   const wrapperRef = useRef(null);
   const measureRef = useRef(null);
+  const pageRefs = useRef([]);
 
   // Mobile only: scale the fixed-width page stack to fit the screen, no horizontal scroll.
   useEffect(() => {
@@ -89,6 +96,11 @@ export default function ResumePreviewPage({ resume }) {
     }
   };
 
+  const jumpToPage = (i) => {
+    setActivePage(i);
+    pageRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <>
       <div className="border-b border-border bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md sm:px-6">
@@ -98,7 +110,7 @@ export default function ResumePreviewPage({ resume }) {
               href={`/resumes/${resume._id}/edit`}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-text-secondary hover:border-primary hover:text-primary"
             >
-              ←
+              <ArrowLeft size={16} />
             </Link>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -115,8 +127,9 @@ export default function ResumePreviewPage({ resume }) {
               type="button"
               onClick={() => handleDownload("pdf")}
               disabled={downloading !== null}
-              className="btn-primary px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
+              className="btn-primary flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
             >
+              <IconFileTypePdf size={16} stroke={1.75} />
               {downloading === "pdf" ? "…" : (
                 <>
                   <span className="hidden sm:inline">Download </span>PDF
@@ -127,43 +140,87 @@ export default function ResumePreviewPage({ resume }) {
               type="button"
               onClick={() => handleDownload("docx")}
               disabled={downloading !== null}
-              className="btn-secondary px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
+              className="btn-secondary flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
             >
+              <IconFileTypeDoc size={16} stroke={1.75} />
               {downloading === "docx" ? "…" : "DOCX"}
             </button>
             <button
               type="button"
               onClick={() => handleDownload("png")}
               disabled={downloading !== null}
-              className="btn-secondary px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
+              className="btn-secondary flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
             >
+              <IconPhoto size={16} stroke={1.75} />
               {downloading === "png" ? "…" : "PNG"}
             </button>
           </div>
         </div>
       </div>
 
-      <div ref={wrapperRef} className="overflow-hidden bg-bg py-8">
-        <div ref={containerRef}>
-          <div className="flex flex-col items-center gap-8" style={{ width: PAGE_WIDTH_PX, margin: "0 auto" }}>
-            {Array.from({ length: pageCount }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5">
-                <div
-                  className="relative overflow-hidden bg-white shadow-lg"
-                  style={{ width: PAGE_WIDTH_PX, height: PDF_PAGE_HEIGHT_PX }}
+      <div className="flex items-start">
+        {/* Page thumbnail rail — large screens only, stays pinned while the main view scrolls */}
+        {pageCount > 1 && (
+          <div className="sticky top-0 hidden h-screen w-28 shrink-0 overflow-y-auto border-r border-border bg-white px-3 py-4 lg:block">
+            <div className="flex flex-col items-center gap-4">
+              {Array.from({ length: pageCount }).map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => jumpToPage(i)}
+                  className="flex flex-col items-center gap-1.5"
                 >
                   <div
-                    ref={i === 0 ? measureRef : null}
-                    style={{ position: "absolute", top: -i * PDF_PAGE_HEIGHT_PX, left: 0, width: PAGE_WIDTH_PX }}
+                    className={`relative overflow-hidden rounded bg-white shadow transition-all ${
+                      activePage === i ? "ring-2 ring-primary" : "ring-1 ring-border hover:ring-primary/50"
+                    }`}
+                    style={{ width: THUMB_WIDTH_PX, height: THUMB_HEIGHT_PX }}
                   >
-                    <ResumeDocument resume={resume} />
+                    <div
+                      style={{
+                        width: PAGE_WIDTH_PX,
+                        transform: `scale(${THUMB_SCALE}) translateY(${-i * PDF_PAGE_HEIGHT_PX}px)`,
+                        transformOrigin: "top left",
+                      }}
+                    >
+                      <ResumeDocument resume={resume} />
+                    </div>
                   </div>
-                </div>
-                <span className="text-[11px] font-medium text-text-secondary">
-                  Page {i + 1} of {pageCount}
-                </span>
+                  <span
+                    className={`text-[11px] font-semibold ${activePage === i ? "text-primary" : "text-text-secondary"}`}
+                  >
+                    {i + 1}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1 bg-bg">
+          <div ref={wrapperRef} className="py-4">
+            <div ref={containerRef}>
+              <div className="flex flex-col items-center gap-4" style={{ width: PAGE_WIDTH_PX, margin: "0 auto" }}>
+                {Array.from({ length: pageCount }).map((_, i) => (
+                  <div key={i} ref={(el) => (pageRefs.current[i] = el)} className="flex flex-col items-center gap-1.5">
+                    <div
+                      className="relative overflow-hidden bg-white shadow-lg"
+                      style={{ width: PAGE_WIDTH_PX, height: PDF_PAGE_HEIGHT_PX }}
+                    >
+                      <div
+                        ref={i === 0 ? measureRef : null}
+                        style={{ position: "absolute", top: -i * PDF_PAGE_HEIGHT_PX, left: 0, width: PAGE_WIDTH_PX }}
+                      >
+                        <ResumeDocument resume={resume} />
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-medium text-text-secondary">
+                      Page {i + 1} of {pageCount}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
