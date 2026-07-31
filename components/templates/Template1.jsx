@@ -1,4 +1,4 @@
-import { skillItems, dateRange, themeVars } from "./helpers";
+import { skillItems, dateRange, themeVars, formatMonthYear } from "./helpers";
 
 export default function Template1({ resume }) {
   const { sections, themeConfig } = resume;
@@ -144,7 +144,7 @@ export default function Template1({ resume }) {
             <Section title="Certifications">
               <ul className="space-y-2 text-[14px] text-[#6b6b6b]">
                 {sections.certifications.map((c, i) => (
-                  <li key={i}>{[c.name, c.issuer, c.date].filter(Boolean).join(" — ")}</li>
+                  <li key={i}>{[c.name, c.issuer, formatMonthYear(c.date)].filter(Boolean).join(" — ")}</li>
                 ))}
               </ul>
             </Section>

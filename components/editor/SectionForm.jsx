@@ -28,8 +28,8 @@ export default function SectionForm({ sections, activeSection, updateSection }) 
             { key: "position", label: "Position" },
             { key: "company", label: "Company" },
             { key: "location", label: "Location" },
-            { key: "startDate", label: "Start Date" },
-            { key: "endDate", label: "End Date" },
+            { key: "startDate", label: "Start Date", type: "month" },
+            { key: "endDate", label: "End Date", type: "month" },
             { key: "current", label: "Currently working here", type: "checkbox" },
             { key: "technology", label: "Technology (e.g. React, Node.js)" },
             { key: "project", label: "Project Name" },
@@ -82,8 +82,8 @@ export default function SectionForm({ sections, activeSection, updateSection }) 
             { key: "field", label: "Field of Study" },
             { key: "institution", label: "Institution" },
             { key: "grade", label: "Grade" },
-            { key: "startDate", label: "Start Date" },
-            { key: "endDate", label: "End Date" },
+            { key: "startDate", label: "Start Date", type: "month" },
+            { key: "endDate", label: "End Date", type: "month" },
           ]}
         />
       );
@@ -97,7 +97,7 @@ export default function SectionForm({ sections, activeSection, updateSection }) 
           fields={[
             { key: "name", label: "Name" },
             { key: "issuer", label: "Issuer" },
-            { key: "date", label: "Date" },
+            { key: "date", label: "Date", type: "month" },
           ]}
         />
       );

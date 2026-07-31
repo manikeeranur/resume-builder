@@ -15,9 +15,32 @@ export function skillItems(items) {
   return [];
 }
 
+// Date fields are edited with native <input type="month"|"date"> pickers,
+// which store values as "YYYY-MM"/"YYYY-MM-DD" — reformat those into
+// readable text for display. Older free-text values (e.g. "Jan 2019",
+// entered before the date picker existed) don't match either pattern and
+// are passed through unchanged.
+export function formatMonthYear(value) {
+  if (!value) return "";
+  const match = /^(\d{4})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+export function formatFullDate(value) {
+  if (!value) return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export function dateRange(startDate, endDate, current) {
-  if (!startDate && !endDate) return "";
-  return `${startDate || ""}${startDate && (endDate || current) ? " – " : ""}${current ? "Present" : endDate || ""}`;
+  const start = formatMonthYear(startDate);
+  const end = formatMonthYear(endDate);
+  if (!start && !end) return "";
+  return `${start}${start && (end || current) ? " – " : ""}${current ? "Present" : end}`;
 }
 
 export function themeVars(themeConfig) {

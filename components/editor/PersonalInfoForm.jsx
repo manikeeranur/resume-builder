@@ -8,7 +8,7 @@ const FIELDS = [
   { key: "github", label: "GitHub" },
   { key: "portfolio", label: "Portfolio" },
   { key: "photo", label: "Photo URL" },
-  { key: "dateOfBirth", label: "Date of Birth" },
+  { key: "dateOfBirth", label: "Date of Birth", type: "date" },
 ];
 
 export default function PersonalInfoForm({ value, onChange }) {
@@ -21,7 +21,12 @@ export default function PersonalInfoForm({ value, onChange }) {
       {FIELDS.map((f) => (
         <div key={f.key}>
           <label className="mb-1 block text-xs font-medium text-text-secondary">{f.label}</label>
-          <input className="input-field" value={pi[f.key] || ""} onChange={(e) => update(f.key, e.target.value)} />
+          <input
+            className="input-field"
+            type={f.type || "text"}
+            value={pi[f.key] || ""}
+            onChange={(e) => update(f.key, e.target.value)}
+          />
         </div>
       ))}
     </div>

@@ -1,6 +1,6 @@
 import { Mail, Phone } from "lucide-react";
 import { IconBrandGithub, IconBrandLinkedin } from "@tabler/icons-react";
-import { skillItems, dateRange, themeVars } from "./helpers";
+import { skillItems, dateRange, themeVars, formatMonthYear, formatFullDate } from "./helpers";
 import { totalExperienceDuration } from "@/lib/experienceDuration";
 
 function Bullet() {
@@ -183,7 +183,7 @@ export default function Template2({ resume }) {
           <div className="flex">
             <Bullet />
             <p className="text-[12px] text-[#5a5a68]">
-              <span className="font-bold text-[#1c1c28]">Date of Birth</span> : {pi.dateOfBirth}
+              <span className="font-bold text-[#1c1c28]">Date of Birth</span> : {formatFullDate(pi.dateOfBirth)}
             </p>
           </div>
         )}
@@ -220,7 +220,7 @@ export default function Template2({ resume }) {
         {sections.certifications.map((c, i) => (
           <div key={i} className="flex">
             <Bullet />
-            <p className="text-[12px] text-[#5a5a68]">{[c.name, c.issuer, c.date].filter(Boolean).join(" — ")}</p>
+            <p className="text-[12px] text-[#5a5a68]">{[c.name, c.issuer, formatMonthYear(c.date)].filter(Boolean).join(" — ")}</p>
           </div>
         ))}
       </div>
