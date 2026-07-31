@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { IconFileTypePdf, IconFileTypeDoc, IconPhoto } from "@tabler/icons-react";
+import ThemeModal from "@/components/editor/ThemeModal";
 
 // pdf.js touches browser-only APIs (e.g. DOMMatrix) that don't exist during
 // Next.js's server render, so this must never be rendered on the server.
@@ -25,8 +26,11 @@ async function downloadFile(url, filename) {
   URL.revokeObjectURL(objectUrl);
 }
 
-export default function ResumePreviewPage({ resume }) {
+export default function ResumePreviewPage({ resume: initialResume }) {
+  const [resume, setResume] = useState(initialResume);
   const [downloading, setDownloading] = useState(null);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [pdfVersion, setPdfVersion] = useState(0);
 
   const handleDownload = async (format) => {
     setDownloading(format);
@@ -57,6 +61,13 @@ export default function ResumePreviewPage({ resume }) {
             </div>
           </div>
           <div className="flex shrink-0 gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => setThemeModalOpen(true)}
+              className="btn-secondary flex items-center px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
+            >
+              Theme
+            </button>
             <button
               type="button"
               onClick={() => handleDownload("pdf")}
@@ -93,8 +104,19 @@ export default function ResumePreviewPage({ resume }) {
       </div>
 
       <div className="min-h-0 flex-1">
-        <PdfViewer resumeId={resume._id} />
+        <PdfViewer key={pdfVersion} resumeId={resume._id} />
       </div>
+
+      {themeModalOpen && (
+        <ThemeModal
+          resume={resume}
+          onClose={() => setThemeModalOpen(false)}
+          onSaved={(themeConfig) => {
+            setResume((prev) => ({ ...prev, themeConfig }));
+            setPdfVersion((v) => v + 1);
+          }}
+        />
+      )}
     </div>
   );
 }

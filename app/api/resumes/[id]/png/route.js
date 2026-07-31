@@ -49,6 +49,7 @@ export async function GET(req, { params }) {
         "Content-Type": "image/png",
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": String(pngBuffer.length),
+        "Cache-Control": "no-store",
       },
     });
   } catch (err) {

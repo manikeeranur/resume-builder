@@ -65,6 +65,10 @@ export async function GET(req, { params }) {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": String(pdfBuffer.length),
+        // Every request must reflect the resume's current saved state (e.g.
+        // theme changes) — without this, browsers can serve a stale cached
+        // PDF for this same URL from before the latest save.
+        "Cache-Control": "no-store",
       },
     });
   } catch (err) {

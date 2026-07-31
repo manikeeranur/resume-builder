@@ -267,7 +267,7 @@ export default function Template2({ resume }) {
       </div>
 
       {contactRows.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-b border-t border-[#ececf2] bg-[#f1f1f1] p-2.5 text-[11.5px] text-[#5a5a68]">
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-b border-t border-[#ececf2] bg-[#f1f1f1] px-2.5 py-1 text-[11.5px] text-[#5a5a68]">
           {contactRows.map((row, i) => (
             <span key={i} className="inline-flex items-center gap-1.5">
               <row.icon size={13} style={{ color: "var(--resume-primary)" }} />

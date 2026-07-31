@@ -6,6 +6,7 @@ import { CheckCircle2, Pencil } from "lucide-react";
 import TopBar from "@/components/layout/TopBar";
 import ScaledPreview from "./ScaledPreview";
 import SectionForm from "./SectionForm";
+import ThemeModal from "./ThemeModal";
 import { SECTION_LIST } from "@/lib/resumeDefaults";
 import { SECTION_ICONS } from "@/lib/sectionIcons";
 import { profileCompleteness } from "@/lib/profileCompleteness";
@@ -16,6 +17,7 @@ export default function ResumeEditor({ resume: initialResume }) {
   const [activeSection, setActiveSection] = useState("personalInfo");
   const [status, setStatus] = useState("saved");
   const [editingTitle, setEditingTitle] = useState(false);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
   const saveTimer = useRef(null);
   const isFirstRender = useRef(true);
 
@@ -61,13 +63,25 @@ export default function ResumeEditor({ resume: initialResume }) {
   return (
     <>
       <TopBar backHref="/dashboard" title={resume.title} subtitle={statusLabel}>
-        <Link href={`/resumes/${resume._id}/theme`} className="btn-secondary px-3 py-2 text-xs sm:px-4 sm:text-sm">
+        <button
+          type="button"
+          onClick={() => setThemeModalOpen(true)}
+          className="btn-secondary px-3 py-2 text-xs sm:px-4 sm:text-sm"
+        >
           Theme
-        </Link>
+        </button>
         <Link href={`/resumes/${resume._id}/preview`} className="btn-primary px-3 py-2 text-xs sm:px-4 sm:text-sm">
           Preview
         </Link>
       </TopBar>
+
+      {themeModalOpen && (
+        <ThemeModal
+          resume={resume}
+          onClose={() => setThemeModalOpen(false)}
+          onSaved={(themeConfig) => setResume((prev) => ({ ...prev, themeConfig }))}
+        />
+      )}
 
       <div className="mx-auto max-w-[1300px] px-4 pt-6 sm:px-6">
         <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-[#8a7cf0] p-6 text-white shadow-card-lg sm:p-8">

@@ -24,6 +24,7 @@ export async function GET(req, { params }) {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": String(buffer.length),
+        "Cache-Control": "no-store",
       },
     });
   } catch (err) {
