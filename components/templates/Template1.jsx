@@ -21,7 +21,7 @@ export default function Template1({ resume }) {
   return (
     <div
       id="resume-content"
-      className="mx-auto w-[850px] bg-white px-14 py-14 text-[#4b4b4b]"
+      className="mx-auto w-[850px] bg-white text-[#4b4b4b]"
       style={{ fontFamily: "'Space Grotesk', sans-serif", ...themeVars(themeConfig) }}
     >
       <div className="flex items-start gap-8">

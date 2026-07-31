@@ -31,6 +31,10 @@ export async function GET(req, { params }) {
     });
     const el = await page.waitForSelector("#resume-content", { timeout: 15000 });
 
+    // See pdf/route.js for why this wait is needed — without it the
+    // screenshot can be taken before the real webfont has swapped in.
+    await page.evaluate(() => document.fonts.ready);
+
     await page.addStyleTag({
       content: `* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }`,
     });

@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import ResumeDocument from "@/components/templates/ResumeDocument";
+import { PAGE_MARGIN_PX } from "@/components/templates/helpers";
 
-const BASE_WIDTH = 850;
+const BASE_WIDTH = 962;
 
 export default function ScaledPreview({ resume }) {
   const containerRef = useRef(null);
@@ -32,7 +33,13 @@ export default function ScaledPreview({ resume }) {
     <div ref={containerRef} className="w-full overflow-hidden rounded-xl border border-border bg-white" style={{ height }}>
       <div
         ref={contentRef}
-        style={{ width: BASE_WIDTH, transform: `scale(${scale})`, transformOrigin: "top left" }}
+        style={{
+          width: BASE_WIDTH,
+          paddingTop: PAGE_MARGIN_PX,
+          paddingBottom: PAGE_MARGIN_PX,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
       >
         <ResumeDocument resume={resume} />
       </div>

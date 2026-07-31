@@ -35,6 +35,14 @@ export async function GET(req, { params }) {
     });
     await page.waitForSelector("#resume-content", { timeout: 15000 });
 
+    // Fonts load async over the network (see globals.css @import) and
+    // Puppeteer starts with a cold cache every request, so networkidle0
+    // alone doesn't guarantee the real webfont has swapped in yet. Without
+    // this, the PDF can render with fallback-font metrics that wrap text
+    // differently than the (font-cached) browser preview, shifting page
+    // breaks by a few lines.
+    await page.evaluate(() => document.fonts.ready);
+
     await page.addStyleTag({
       content: `
         html, body { background: #fff !important; overflow: visible !important; }

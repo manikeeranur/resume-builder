@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import ResumeDocument from "./ResumeDocument";
+import { PAGE_MARGIN_PX } from "./helpers";
 
-const BASE_WIDTH = 850;
+const BASE_WIDTH = 962;
 
 export default function ScaledThumb({ resume }) {
   const containerRef = useRef(null);
@@ -21,7 +22,15 @@ export default function ScaledThumb({ resume }) {
 
   return (
     <div ref={containerRef} className="pointer-events-none absolute inset-0 overflow-hidden bg-white">
-      <div style={{ width: BASE_WIDTH, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+      <div
+        style={{
+          width: BASE_WIDTH,
+          paddingTop: PAGE_MARGIN_PX,
+          paddingBottom: PAGE_MARGIN_PX,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      >
         <ResumeDocument resume={resume} />
       </div>
     </div>

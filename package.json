@@ -20,7 +20,8 @@
     "puppeteer": "^24.43.1",
     "puppeteer-core": "^24.43.1",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-pdf": "^9.2.1"
   },
   "devDependencies": {
     "eslint": "^8",

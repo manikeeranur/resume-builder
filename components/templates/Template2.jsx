@@ -246,7 +246,7 @@ export default function Template2({ resume }) {
   return (
     <div
       id="resume-content"
-      className="mx-auto w-[850px] bg-white px-12 py-10 text-[#4b4b55]"
+      className="mx-auto w-[850px] bg-white text-[#4b4b55]"
       style={{ fontFamily: "Inter, 'Segoe UI', sans-serif", ...themeVars(themeConfig) }}
     >
       <div className="flex items-start gap-5">
