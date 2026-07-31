@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+import ScaledThumb from "@/components/templates/ScaledThumb";
 
 // Loaded from CDN (matching the bundled pdfjs-dist version) since pdf.js
 // needs its parsing/rendering work to run off the main thread.
@@ -12,7 +13,26 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 const MAX_PAGE_WIDTH_PX = 820;
 const THUMB_WIDTH_PX = 92;
 
-export default function PdfViewer({ resumeId }) {
+// Shown in place of the real PDF while it's still generating: a small,
+// centered, faint render of the actual resume content. Reuses ScaledThumb —
+// the same component the dashboard cards and template gallery render — so
+// the ghost is sized exactly like every other template thumbnail in the
+// app, not an arbitrary/guessed aspect ratio.
+function GhostPreview({ resume }) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 bg-bg">
+      <div className="relative aspect-[3/4] w-56 overflow-hidden rounded-lg shadow-lg">
+        <ScaledThumb resume={resume} />
+      </div>
+      <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-text-secondary shadow-card-lg">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+        Generating preview…
+      </span>
+    </div>
+  );
+}
+
+export default function PdfViewer({ resume }) {
   const [numPages, setNumPages] = useState(null);
   const [pageWidth, setPageWidth] = useState(MAX_PAGE_WIDTH_PX);
   const [activePage, setActivePage] = useState(0);
@@ -73,12 +93,12 @@ export default function PdfViewer({ resumeId }) {
     // main pages below read from this single <Document>, so react-pdf
     // parses/loads the PDF only once and reuses it for every <Page>.
     <Document
-      key={resumeId}
-      file={`/api/resumes/${resumeId}/pdf`}
+      key={resume._id}
+      file={`/api/resumes/${resume._id}/pdf`}
       onLoadSuccess={({ numPages: n }) => setNumPages(n)}
-      loading={<p className="py-12 text-center text-sm text-text-secondary">Generating preview…</p>}
+      loading={<GhostPreview resume={resume} />}
       error={<p className="py-12 text-center text-sm text-red-500">Couldn't load the PDF preview.</p>}
-      className="flex h-full items-stretch"
+      className="flex h-full items-stretch justify-center"
     >
       {numPages > 1 && (
         <div className="hidden h-full w-28 shrink-0 overflow-y-auto border-r border-border bg-white px-3 py-4 lg:block">

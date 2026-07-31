@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { IconFileTypePdf, IconFileTypeDoc, IconPhoto } from "@tabler/icons-react";
+import { ArrowLeft, Eye } from "lucide-react";
+import { IconPalette, IconDownload, IconFileTypePdf, IconFileTypePng } from "@tabler/icons-react";
 import ThemeModal from "@/components/editor/ThemeModal";
+import RippleButton from "@/components/ui/RippleButton";
+
+const DOWNLOAD_OPTIONS = [
+  { format: "pdf", label: "PDF", Icon: IconFileTypePdf },
+  { format: "png", label: "PNG", Icon: IconFileTypePng },
+];
 
 // pdf.js touches browser-only APIs (e.g. DOMMatrix) that don't exist during
 // Next.js's server render, so this must never be rendered on the server.
@@ -31,8 +37,20 @@ export default function ResumePreviewPage({ resume: initialResume }) {
   const [downloading, setDownloading] = useState(null);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
   const [pdfVersion, setPdfVersion] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [menuOpen]);
 
   const handleDownload = async (format) => {
+    setMenuOpen(false);
     setDownloading(format);
     try {
       const filename = `${(resume.title || "Resume").replace(/[^a-z0-9]+/gi, "_")}.${format}`;
@@ -46,65 +64,84 @@ export default function ResumePreviewPage({ resume: initialResume }) {
 
   return (
     <div className="flex h-screen flex-col">
-      <div className="border-b border-border bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md sm:px-6">
-        <div className="mx-auto flex max-w-[1000px] items-center justify-between gap-4">
+      <div className="border-b border-border bg-white/95 shadow-sm backdrop-blur-md">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <Link
               href={`/resumes/${resume._id}/edit`}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-text-secondary hover:border-primary hover:text-primary"
+              aria-label="Back to editor"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-primary hover:bg-primary-light hover:text-primary"
             >
               <ArrowLeft size={16} />
             </Link>
+            <span
+              className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:flex"
+              style={{ background: "var(--primary-light)", color: "var(--primary)" }}
+            >
+              <Eye size={18} />
+            </span>
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold text-text sm:text-base">Resume Preview</h1>
-              <p className="hidden text-xs text-text-secondary sm:block">Review your resume or save a copy</p>
+              <h1 className="truncate text-sm font-bold leading-5 text-text sm:text-base">
+                {resume.title || "Resume Preview"}
+              </h1>
+              <p className="hidden text-xs leading-4 text-text-secondary sm:block">
+                Review your resume before you download
+              </p>
             </div>
           </div>
-          <div className="flex shrink-0 gap-1.5 sm:gap-2">
-            <button
+          <div className="flex shrink-0 items-center gap-2">
+            <RippleButton
               type="button"
               onClick={() => setThemeModalOpen(true)}
-              className="btn-secondary flex items-center px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
+              className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
+              style={{ borderRadius: "9999px" }}
             >
+              <IconPalette size={16} stroke={2} />
               Theme
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDownload("pdf")}
-              disabled={downloading !== null}
-              className="btn-primary flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
-            >
-              <IconFileTypePdf size={16} stroke={1.75} />
-              {downloading === "pdf" ? "…" : (
-                <>
-                  <span className="hidden sm:inline">Download </span>PDF
-                </>
+            </RippleButton>
+
+            <div ref={menuRef} className="relative">
+              <RippleButton
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                disabled={downloading !== null}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
+                style={{ borderRadius: "9999px" }}
+              >
+                <IconDownload size={16} stroke={2} />
+                Download
+              </RippleButton>
+
+              {menuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-white py-1.5 shadow-card-lg"
+                >
+                  {DOWNLOAD_OPTIONS.map(({ format, label, Icon }) => (
+                    <RippleButton
+                      key={format}
+                      as="button"
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleDownload(format)}
+                      disabled={downloading !== null}
+                      className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-medium text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Icon size={16} stroke={1.75} className="text-text-secondary" />
+                      {downloading === format ? "Downloading…" : label}
+                    </RippleButton>
+                  ))}
+                </div>
               )}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDownload("docx")}
-              disabled={downloading !== null}
-              className="btn-secondary flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
-            >
-              <IconFileTypeDoc size={16} stroke={1.75} />
-              {downloading === "docx" ? "…" : "DOCX"}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDownload("png")}
-              disabled={downloading !== null}
-              className="btn-secondary flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
-            >
-              <IconPhoto size={16} stroke={1.75} />
-              {downloading === "png" ? "…" : "PNG"}
-            </button>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="min-h-0 flex-1">
-        <PdfViewer key={pdfVersion} resumeId={resume._id} />
+        <PdfViewer key={pdfVersion} resume={resume} />
       </div>
 
       {themeModalOpen && (
