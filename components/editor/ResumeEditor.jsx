@@ -185,7 +185,7 @@ export default function ResumeEditor({ resume: initialResume }) {
         <div className="hidden w-[340px] shrink-0 lg:block">
           <div className="sticky top-20">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Preview</p>
-            <ExactFirstPagePreview key={pdfVersion} resumeId={resume._id} />
+            <ExactFirstPagePreview key={pdfVersion} resume={resume} />
             <p className="mt-2 text-[11px] leading-snug text-text-secondary">
               Shows the exact first page of your saved resume. Updates a moment after you stop typing.
             </p>

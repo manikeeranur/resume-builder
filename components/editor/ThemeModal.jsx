@@ -127,7 +127,7 @@ export default function ThemeModal({ resume, onClose, onSaved }) {
 
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Preview</p>
-            <ExactFirstPagePreview resumeId={resume._id} />
+            <ExactFirstPagePreview resume={resume} />
             <p className="mt-2 text-[11px] leading-snug text-text-secondary">
               Shows your saved resume's exact first page. Save changes to update it.
             </p>

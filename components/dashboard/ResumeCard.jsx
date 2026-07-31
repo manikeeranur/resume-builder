@@ -28,7 +28,7 @@ export default function ResumeCard({ resume }) {
   return (
     <div className="card flex flex-col overflow-hidden">
       <div className="relative overflow-hidden border-b border-border">
-        <ExactFirstPagePreview resumeId={resume._id} />
+        <ExactFirstPagePreview resume={resume} />
         {deleting && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-xs font-semibold text-primary">
             Deleting…
