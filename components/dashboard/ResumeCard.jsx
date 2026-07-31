@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 import { Eye } from "lucide-react";
-import ScaledThumb from "@/components/templates/ScaledThumb";
+import ExactFirstPagePreview from "@/components/editor/LazyExactFirstPagePreview";
 import { getTemplate } from "@/lib/templates";
 
 export default function ResumeCard({ resume }) {
@@ -27,8 +27,8 @@ export default function ResumeCard({ resume }) {
 
   return (
     <div className="card flex flex-col overflow-hidden">
-      <div className="relative aspect-[3/4] border-b border-border">
-        <ScaledThumb resume={resume} />
+      <div className="relative overflow-hidden border-b border-border">
+        <ExactFirstPagePreview resumeId={resume._id} />
         {deleting && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-xs font-semibold text-primary">
             Deleting…

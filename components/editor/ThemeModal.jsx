@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { THEME_COLORS, THEME_FONTS } from "@/lib/resumeDefaults";
-import ScaledPreview from "./ScaledPreview";
+import ExactFirstPagePreview from "./LazyExactFirstPagePreview";
 
 export default function ThemeModal({ resume, onClose, onSaved }) {
   const [themeConfig, setThemeConfig] = useState(resume.themeConfig);
@@ -127,7 +127,10 @@ export default function ThemeModal({ resume, onClose, onSaved }) {
 
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Preview</p>
-            <ScaledPreview resume={{ ...resume, themeConfig }} />
+            <ExactFirstPagePreview resumeId={resume._id} />
+            <p className="mt-2 text-[11px] leading-snug text-text-secondary">
+              Shows your saved resume's exact first page. Save changes to update it.
+            </p>
           </div>
         </div>
 

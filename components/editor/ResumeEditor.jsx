@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Pencil } from "lucide-react";
 import TopBar from "@/components/layout/TopBar";
-import ScaledPreview from "./ScaledPreview";
 import SectionForm from "./SectionForm";
 import ThemeModal from "./ThemeModal";
+import ExactFirstPagePreview from "./LazyExactFirstPagePreview";
 import { SECTION_LIST } from "@/lib/resumeDefaults";
 import { SECTION_ICONS } from "@/lib/sectionIcons";
 import { profileCompleteness } from "@/lib/profileCompleteness";
@@ -18,6 +18,7 @@ export default function ResumeEditor({ resume: initialResume }) {
   const [status, setStatus] = useState("saved");
   const [editingTitle, setEditingTitle] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [pdfVersion, setPdfVersion] = useState(0);
   const saveTimer = useRef(null);
   const isFirstRender = useRef(true);
 
@@ -41,6 +42,7 @@ export default function ResumeEditor({ resume: initialResume }) {
           body: JSON.stringify({ sections: resume.sections, title: resume.title }),
         });
         setStatus(res.ok ? "saved" : "unsaved");
+        if (res.ok) setPdfVersion((v) => v + 1);
       } catch {
         setStatus("unsaved");
       }
@@ -79,7 +81,10 @@ export default function ResumeEditor({ resume: initialResume }) {
         <ThemeModal
           resume={resume}
           onClose={() => setThemeModalOpen(false)}
-          onSaved={(themeConfig) => setResume((prev) => ({ ...prev, themeConfig }))}
+          onSaved={(themeConfig) => {
+            setResume((prev) => ({ ...prev, themeConfig }));
+            setPdfVersion((v) => v + 1);
+          }}
         />
       )}
 
@@ -179,8 +184,11 @@ export default function ResumeEditor({ resume: initialResume }) {
 
         <div className="hidden w-[340px] shrink-0 lg:block">
           <div className="sticky top-20">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Live Preview</p>
-            <ScaledPreview resume={resume} />
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Preview</p>
+            <ExactFirstPagePreview key={pdfVersion} resumeId={resume._id} />
+            <p className="mt-2 text-[11px] leading-snug text-text-secondary">
+              Shows the exact first page of your saved resume. Updates a moment after you stop typing.
+            </p>
           </div>
         </div>
       </div>
