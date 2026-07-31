@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import ScaledThumb from "@/components/templates/ScaledThumb";
+import { getTemplate } from "@/lib/templates";
 
 // Loaded from CDN (matching the bundled pdfjs-dist version) since pdf.js
 // needs its parsing/rendering work to run off the main thread.
@@ -14,15 +14,19 @@ const MAX_PAGE_WIDTH_PX = 820;
 const THUMB_WIDTH_PX = 92;
 
 // Shown in place of the real PDF while it's still generating: a small,
-// centered, faint render of the actual resume content. Reuses ScaledThumb —
-// the same component the dashboard cards and template gallery render — so
-// the ghost is sized exactly like every other template thumbnail in the
-// app, not an arbitrary/guessed aspect ratio.
+// centered box with the static template preview image faintly showing
+// through (same image + style used everywhere else in the app the exact
+// PDF is loading — dashboard cards, editor Live Preview, Theme modal).
 function GhostPreview({ resume }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 bg-bg">
-      <div className="relative aspect-[3/4] w-56 overflow-hidden rounded-lg shadow-lg">
-        <ScaledThumb resume={resume} />
+      <div className="relative aspect-[210/297] w-56 overflow-hidden rounded-lg shadow-lg">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={getTemplate(resume.templateId).thumbnail}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-top opacity-25"
+        />
       </div>
       <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-text-secondary shadow-card-lg">
         <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
