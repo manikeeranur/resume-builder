@@ -50,10 +50,19 @@ export async function GET(req, { params }) {
       `,
     });
 
+    // Template 3's header background is designed to bleed to the page edge
+    // (no internal page padding of its own to compensate for a print
+    // margin), unlike Templates 1/2 which have no padding of their own and
+    // rely on this margin for breathing room — so only Template 3 skips it.
+    const margin =
+      resume.templateId === "template-3"
+        ? { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" }
+        : { top: "8mm", right: "8mm", bottom: "8mm", left: "8mm" };
+
     const pdfData = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "8mm", right: "8mm", bottom: "8mm", left: "8mm" },
+      margin,
     });
 
     const pdfBuffer = Buffer.isBuffer(pdfData) ? pdfData : Buffer.from(pdfData);

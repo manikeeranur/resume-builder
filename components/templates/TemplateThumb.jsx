@@ -4,10 +4,12 @@ import { useState } from "react";
 import ScaledThumb from "./ScaledThumb";
 import { sampleResume } from "@/lib/sampleResume";
 import { sampleResume2 } from "@/lib/sampleResume2";
+import { sampleResume3 } from "@/lib/sampleResume3";
 
 const FALLBACK_SAMPLES = {
   "template-1": sampleResume,
   "template-2": sampleResume2,
+  "template-3": sampleResume3,
 };
 
 export default function TemplateThumb({ templateId, thumbnail }) {

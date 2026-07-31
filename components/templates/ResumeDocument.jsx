@@ -1,9 +1,11 @@
 import Template1 from "./Template1";
 import Template2 from "./Template2";
+import Template3 from "./Template3";
 
 const TEMPLATE_COMPONENTS = {
   "template-1": Template1,
   "template-2": Template2,
+  "template-3": Template3,
 };
 
 export default function ResumeDocument({ resume }) {
