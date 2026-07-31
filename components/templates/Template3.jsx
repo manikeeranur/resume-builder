@@ -40,6 +40,17 @@ function BodyText({ children, className = "" }) {
   );
 }
 
+// Each sentence becomes its own bullet — split strictly on ". " (a bare
+// line break alone doesn't start a new bullet).
+function splitBullets(text) {
+  return (text || "")
+    .replace(/\n/g, " ")
+    .split(/\.\s+/)
+    .map((l) => l.trim().replace(/\.$/, ""))
+    .filter(Boolean)
+    .map((l) => `${l}.`);
+}
+
 export default function Template3({ resume }) {
   const { sections, themeConfig } = resume;
   const pi = sections.personalInfo || {};
@@ -204,38 +215,17 @@ export default function Template3({ resume }) {
                 {(exp.description || exp.project || exp.technology) && (
                   <div className="mt-2 space-y-[8px]">
                     {exp.description && (
-                      // <BodyText>
-                      //   {exp.description
-                      //     .split("\n")
-                      //     .map((line) => line.trim())
-                      //     .filter(Boolean)
-                      //     .join(" ")}
-                      // </BodyText>
-                      // <div className="space-y-1">
-                      //   {exp.description
-                      //     ?.split(/\.\s*|\n/)
-                      //     .map((line) => line.trim())
-                      //     .filter(Boolean)
-                      //     .map((line, index) => (
-                      //       <div key={index} className="flex items-start gap-2">
-                      //         <span>•</span>
-                      //         <BodyText>{line}.</BodyText>
-                      //       </div>
-                      //     ))}
-                      // </div>
                       <>
                         {exp.project && <BodyText>Project : {exp.project}</BodyText>}
-                        <ul className="list-disc pl-5 space-y-1 marker:text-gray-400">
-                          {exp.description
-                            ?.split(/\.\s*|\n/)
-                            .map((line) => line.trim())
-                            .filter(Boolean)
-                            .map((line, index) => (
-                              <li key={index}>
-                                <BodyText>{line}.</BodyText>
-                              </li>
-                            ))}
-                        </ul>
+                        {/* <ul className="list-disc pl-5 space-y-1 marker:text-gray-400">
+                          {splitBullets(exp.description).map((line, index) => (
+                            <li key={index}>
+                              <BodyText>{line}</BodyText>
+                            </li>
+                          ))}
+                        </ul> */}
+                              <BodyText className="text-gray-500">{exp.description}</BodyText>
+
                       </>
                     )}
                     {!exp.description && exp.project && (

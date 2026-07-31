@@ -39,12 +39,23 @@ export default function Template2({ resume }) {
 
   // Project Details prefers each job's linked Project/Description; if none
   // of the experience entries have that filled in, fall back to the
-  // standalone Projects section so that data isn't silently dropped.
+  // standalone Projects section so that data isn't silently dropped. Each
+  // sentence becomes its own bullet — split strictly on ". " (a bare line
+  // break alone doesn't start a new bullet) — same as the Work Experience
+  // description bullets in Template 3.
+  const splitBullets = (text) =>
+    (text || "")
+      .replace(/\n/g, " ")
+      .split(/\.\s+/)
+      .map((l) => l.trim().replace(/\.$/, ""))
+      .filter(Boolean)
+      .map((l) => `${l}.`);
+
   const experienceProjects = (sections.experience || [])
     .filter((exp) => exp.project && exp.description)
     .map((exp) => ({
       name: exp.project,
-      bullets: exp.description.split("\n").map((l) => l.trim()).filter(Boolean),
+      bullets: splitBullets(exp.description),
     }));
   const projectItems =
     experienceProjects.length > 0
@@ -53,7 +64,7 @@ export default function Template2({ resume }) {
           .filter((p) => p.name)
           .map((p) => ({
             name: p.name,
-            bullets: [p.description, p.tech && `Technologies: ${p.tech}`].filter(Boolean),
+            bullets: [...splitBullets(p.description), p.tech && `Technologies: ${p.tech}`].filter(Boolean),
           }));
 
   const workExperience = sections.experience?.length > 0 && (
@@ -111,7 +122,7 @@ export default function Template2({ resume }) {
             <ul className="space-y-1 pl-1">
               {proj.bullets.map((line, j) => (
                 <li key={j} className="flex text-[12px] leading-relaxed text-[#5a5a68]">
-                  <span className="mr-2 mt-1.5 h-[3px] w-[3px] shrink-0 rounded-full bg-[#8a8a99]" />
+                  <Bullet />
                   {line}
                 </li>
               ))}
