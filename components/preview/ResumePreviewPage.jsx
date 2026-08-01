@@ -1,18 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, Eye } from "lucide-react";
-import { IconPalette, IconDownload, IconFileTypePdf, IconFileTypePng } from "@tabler/icons-react";
+import { IconPalette, IconDownload } from "@tabler/icons-react";
 import TopBar from "@/components/layout/TopBar";
 import ThemeModal from "@/components/editor/ThemeModal";
 import RippleButton from "@/components/ui/RippleButton";
-
-const DOWNLOAD_OPTIONS = [
-  { format: "pdf", label: "PDF", Icon: IconFileTypePdf },
-  { format: "png", label: "PNG", Icon: IconFileTypePng },
-];
 
 // pdf.js touches browser-only APIs (e.g. DOMMatrix) that don't exist during
 // Next.js's server render, so this must never be rendered on the server.
@@ -35,31 +30,19 @@ async function downloadFile(url, filename) {
 
 export default function ResumePreviewPage({ resume: initialResume }) {
   const [resume, setResume] = useState(initialResume);
-  const [downloading, setDownloading] = useState(null);
+  const [downloading, setDownloading] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
   const [pdfVersion, setPdfVersion] = useState(0);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [menuOpen]);
-
-  const handleDownload = async (format) => {
-    setMenuOpen(false);
-    setDownloading(format);
+  const handleDownload = async () => {
+    setDownloading(true);
     try {
-      const filename = `${(resume.title || "Resume").replace(/[^a-z0-9]+/gi, "_")}.${format}`;
-      await downloadFile(`/api/resumes/${resume._id}/${format}`, filename);
+      const filename = `${(resume.title || "Resume").replace(/[^a-z0-9]+/gi, "_")}.pdf`;
+      await downloadFile(`/api/resumes/${resume._id}/pdf`, filename);
     } catch (err) {
-      alert(`Failed to download ${format.toUpperCase()}. Please try again.`);
+      alert("Failed to download PDF. Please try again.");
     } finally {
-      setDownloading(null);
+      setDownloading(false);
     }
   };
 
@@ -75,42 +58,16 @@ export default function ResumePreviewPage({ resume: initialResume }) {
         Theme
       </RippleButton>
 
-      <div ref={menuRef} className="relative">
-        <RippleButton
-          type="button"
-          onClick={() => setMenuOpen((v) => !v)}
-          disabled={downloading !== null}
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
-          style={{ borderRadius: "9999px" }}
-        >
-          <IconDownload size={16} stroke={2} />
-          Download
-        </RippleButton>
-
-        {menuOpen && (
-          <div
-            role="menu"
-            className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-white py-1.5 shadow-card-lg"
-          >
-            {DOWNLOAD_OPTIONS.map(({ format, label, Icon }) => (
-              <RippleButton
-                key={format}
-                as="button"
-                type="button"
-                role="menuitem"
-                onClick={() => handleDownload(format)}
-                disabled={downloading !== null}
-                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-medium text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Icon size={16} stroke={1.75} className="text-text-secondary" />
-                {downloading === format ? "Downloading…" : label}
-              </RippleButton>
-            ))}
-          </div>
-        )}
-      </div>
+      <RippleButton
+        type="button"
+        onClick={handleDownload}
+        disabled={downloading}
+        className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
+        style={{ borderRadius: "9999px" }}
+      >
+        <IconDownload size={16} stroke={1.75} />
+        {downloading ? "Downloading…" : "Download"}
+      </RippleButton>
     </>
   );
 

@@ -44,7 +44,6 @@ export default function Template4({ resume }) {
     sections.summary && "profile",
     experiences.length > 0 && "experience",
     education.length > 0 && "education",
-    languages.length > 0 && "languages",
   ].filter(Boolean)[0];
   const sectionTop = (key) => (key === firstMainSection ? "" : "pt-7");
 
@@ -122,13 +121,15 @@ export default function Template4({ resume }) {
             <SidebarHeading>Links</SidebarHeading>
             <div>
               {links.map((l, i) => (
-                <a
-                  key={l.label}
-                  href={l.href}
-                  className={`block text-[13px] text-white/70 no-underline ${i === 0 ? "" : "pt-2.5"}`}
-                >
-                  {l.label}
-                </a>
+                <div key={l.label} className={`break-inside-avoid ${i === 0 ? "" : "pt-3.5"}`}>
+                  <div className="text-[13px] font-bold text-white">{l.label}</div>
+                  <a
+                    href={l.href}
+                    className="mt-0.5 block break-all text-[13px] text-white/70 no-underline"
+                  >
+                    {l.href.replace(/^https?:\/\//, "")}
+                  </a>
+                </div>
               ))}
             </div>
           </div>
@@ -148,6 +149,22 @@ export default function Template4({ resume }) {
                   className="break-inside-avoid rounded-full bg-white/15 px-2.5 py-1 text-[11.5px] leading-none text-white/90"
                 >
                   {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {languages.length > 0 && (
+          <div className="pt-9 text-left break-inside-avoid">
+            <SidebarHeading>Languages</SidebarHeading>
+            <div className="flex flex-wrap gap-1.5">
+              {languages.map((l, i) => (
+                <span
+                  key={i}
+                  className="break-inside-avoid rounded-full bg-white/15 px-2.5 py-1 text-[11.5px] leading-none text-white/90"
+                >
+                  {l.name}
                 </span>
               ))}
             </div>
@@ -202,19 +219,6 @@ export default function Template4({ resume }) {
                   <div className="text-[13px] text-[#333333]">
                     {[ed.field || ed.degree, dateRange(ed.startDate, ed.endDate)].filter(Boolean).join(", ")}
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {languages.length > 0 && (
-          <div className={`break-inside-avoid ${sectionTop("languages")}`}>
-            <MainHeading>Languages</MainHeading>
-            <div>
-              {languages.map((l, i) => (
-                <div key={i} className={`text-[13.5px] text-[#333333] ${i === 0 ? "" : "pt-1"}`}>
-                  {l.name}
                 </div>
               ))}
             </div>
