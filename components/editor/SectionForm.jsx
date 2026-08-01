@@ -11,10 +11,16 @@ import {
   emptyAchievement,
 } from "@/lib/resumeDefaults";
 
-export default function SectionForm({ sections, activeSection, updateSection }) {
+export default function SectionForm({ sections, activeSection, updateSection, userId }) {
   switch (activeSection) {
     case "personalInfo":
-      return <PersonalInfoForm value={sections.personalInfo} onChange={(v) => updateSection("personalInfo", v)} />;
+      return (
+        <PersonalInfoForm
+          value={sections.personalInfo}
+          onChange={(v) => updateSection("personalInfo", v)}
+          userId={userId}
+        />
+      );
     case "summary":
       return <SummaryForm value={sections.summary} onChange={(v) => updateSection("summary", v)} />;
     case "experience":

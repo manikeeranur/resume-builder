@@ -178,7 +178,12 @@ export default function ResumeEditor({ resume: initialResume }) {
                 {SECTION_LIST.find((s) => s.key === activeSection)?.label}
               </h2>
             </div>
-            <SectionForm sections={resume.sections} activeSection={activeSection} updateSection={updateSection} />
+            <SectionForm
+              sections={resume.sections}
+              activeSection={activeSection}
+              updateSection={updateSection}
+              userId={resume.userId}
+            />
           </div>
         </div>
 

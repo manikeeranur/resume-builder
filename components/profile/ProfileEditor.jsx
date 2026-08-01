@@ -146,7 +146,12 @@ export default function ProfileEditor({ profile: initialProfile }) {
                 {SECTION_LIST.find((s) => s.key === activeSection)?.label}
               </h2>
             </div>
-            <SectionForm sections={sections} activeSection={activeSection} updateSection={updateSection} />
+            <SectionForm
+              sections={sections}
+              activeSection={activeSection}
+              updateSection={updateSection}
+              userId={initialProfile.userId}
+            />
           </div>
         </div>
 
