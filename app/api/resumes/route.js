@@ -30,11 +30,15 @@ export async function POST(req) {
   const profile = await Profile.findOne({ userId: session.user.id });
   const sections = profile ? JSON.parse(JSON.stringify(profile.sections)) : emptyResumeSections;
 
+  const themeConfig = template.defaultColor
+    ? { ...defaultThemeConfig, primaryColor: template.defaultColor }
+    : defaultThemeConfig;
+
   const resume = await Resume.create({
     userId: session.user.id,
     title: body.title || "Untitled Resume",
     templateId: template.id,
-    themeConfig: defaultThemeConfig,
+    themeConfig,
     sections,
   });
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
-import { THEME_COLORS, THEME_FONTS } from "@/lib/resumeDefaults";
+import { Check, RotateCcw, X } from "lucide-react";
+import { defaultThemeConfig, THEME_COLORS, THEME_FONTS } from "@/lib/resumeDefaults";
+import { getTemplate } from "@/lib/templates";
 import ExactFirstPagePreview from "./LazyExactFirstPagePreview";
 
 export default function ThemeModal({ resume, onClose, onSaved }) {
@@ -10,6 +11,15 @@ export default function ThemeModal({ resume, onClose, onSaved }) {
   const [status, setStatus] = useState("idle");
 
   const update = (key, value) => setThemeConfig((prev) => ({ ...prev, [key]: value }));
+
+  // The template's own reference color if it has one (e.g. Template 3/4's
+  // color scheme), otherwise the app-wide default — same value a brand new
+  // resume on this template would start with.
+  const defaultConfig = {
+    ...defaultThemeConfig,
+    primaryColor: getTemplate(resume.templateId).defaultColor || defaultThemeConfig.primaryColor,
+  };
+  const resetToDefault = () => setThemeConfig(defaultConfig);
 
   const save = async () => {
     setStatus("saving");
@@ -48,21 +58,37 @@ export default function ThemeModal({ resume, onClose, onSaved }) {
         <div className="grid grid-cols-1 gap-6 overflow-y-auto p-6 lg:grid-cols-[1fr_300px]">
           <div className="space-y-6">
             <div>
-              <p className="mb-2 text-sm font-semibold text-text">Primary Color</p>
-              <div className="flex gap-2">
-                {THEME_COLORS.map((c) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    onClick={() => update("primaryColor", c.value)}
-                    className="h-9 w-9 rounded-full ring-offset-2 transition-transform hover:scale-110"
-                    style={{
-                      background: c.value,
-                      boxShadow: themeConfig.primaryColor === c.value ? `0 0 0 2px #fff, 0 0 0 4px ${c.value}` : "none",
-                    }}
-                    aria-label={c.name}
-                  />
-                ))}
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-sm font-semibold text-text">Primary Color</p>
+                <button
+                  type="button"
+                  onClick={resetToDefault}
+                  className="flex items-center gap-1 text-xs font-semibold text-text-secondary hover:text-text"
+                >
+                  <RotateCcw size={12} />
+                  Reset to default
+                </button>
+              </div>
+              <div className="grid grid-cols-6 gap-3">
+                {THEME_COLORS.map((c) => {
+                  const selected = themeConfig.primaryColor === c.value;
+                  return (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => update("primaryColor", c.value)}
+                      className="relative flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-110"
+                      style={{
+                        background: c.value,
+                        boxShadow: selected ? `0 0 0 2px #fff, 0 0 0 4px ${c.value}` : "none",
+                      }}
+                      aria-label={c.name}
+                      title={c.name}
+                    >
+                      {selected && <Check size={16} strokeWidth={3} className="text-white drop-shadow" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, Eye } from "lucide-react";
 import { IconPalette, IconDownload, IconFileTypePdf, IconFileTypePng } from "@tabler/icons-react";
+import TopBar from "@/components/layout/TopBar";
 import ThemeModal from "@/components/editor/ThemeModal";
 import RippleButton from "@/components/ui/RippleButton";
 
@@ -62,9 +63,75 @@ export default function ResumePreviewPage({ resume: initialResume }) {
     }
   };
 
+  const actionButtons = (
+    <>
+      <RippleButton
+        type="button"
+        onClick={() => setThemeModalOpen(true)}
+        className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
+        style={{ borderRadius: "9999px" }}
+      >
+        <IconPalette size={16} stroke={2} />
+        Theme
+      </RippleButton>
+
+      <div ref={menuRef} className="relative">
+        <RippleButton
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          disabled={downloading !== null}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
+          style={{ borderRadius: "9999px" }}
+        >
+          <IconDownload size={16} stroke={2} />
+          Download
+        </RippleButton>
+
+        {menuOpen && (
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-white py-1.5 shadow-card-lg"
+          >
+            {DOWNLOAD_OPTIONS.map(({ format, label, Icon }) => (
+              <RippleButton
+                key={format}
+                as="button"
+                type="button"
+                role="menuitem"
+                onClick={() => handleDownload(format)}
+                disabled={downloading !== null}
+                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-medium text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Icon size={16} stroke={1.75} className="text-text-secondary" />
+                {downloading === format ? "Downloading…" : label}
+              </RippleButton>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="flex h-screen flex-col">
-      <div className="border-b border-border bg-white/95 shadow-sm backdrop-blur-md">
+      {/* Large screens: the same native TopBar the editor uses, so
+          Edit ↔ Preview doesn't feel like two different apps. Small
+          screens keep this page's own richer header (icon badge, pill
+          buttons) below — there's less width to share there, so the
+          compact shared bar isn't worth the consistency trade-off. */}
+      <div className="sticky top-0 z-20 hidden lg:block">
+        <TopBar
+          backHref={`/resumes/${resume._id}/edit`}
+          title={resume.title || "Resume Preview"}
+          subtitle="Review your resume before you download"
+        >
+          {actionButtons}
+        </TopBar>
+      </div>
+
+      <div className="sticky top-0 z-20 border-b border-border bg-white/95 shadow-sm backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <Link
@@ -89,54 +156,7 @@ export default function ResumePreviewPage({ resume: initialResume }) {
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <RippleButton
-              type="button"
-              onClick={() => setThemeModalOpen(true)}
-              className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
-              style={{ borderRadius: "9999px" }}
-            >
-              <IconPalette size={16} stroke={2} />
-              Theme
-            </RippleButton>
-
-            <div ref={menuRef} className="relative">
-              <RippleButton
-                type="button"
-                onClick={() => setMenuOpen((v) => !v)}
-                disabled={downloading !== null}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
-                style={{ borderRadius: "9999px" }}
-              >
-                <IconDownload size={16} stroke={2} />
-                Download
-              </RippleButton>
-
-              {menuOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-white py-1.5 shadow-card-lg"
-                >
-                  {DOWNLOAD_OPTIONS.map(({ format, label, Icon }) => (
-                    <RippleButton
-                      key={format}
-                      as="button"
-                      type="button"
-                      role="menuitem"
-                      onClick={() => handleDownload(format)}
-                      disabled={downloading !== null}
-                      className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-medium text-text transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Icon size={16} stroke={1.75} className="text-text-secondary" />
-                      {downloading === format ? "Downloading…" : label}
-                    </RippleButton>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <div className="flex shrink-0 items-center gap-2">{actionButtons}</div>
         </div>
       </div>
 

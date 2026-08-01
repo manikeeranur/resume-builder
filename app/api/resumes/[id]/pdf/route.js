@@ -50,14 +50,14 @@ export async function GET(req, { params }) {
       `,
     });
 
-    // Template 3's header background is designed to bleed to the page edge
-    // (no internal page padding of its own to compensate for a print
-    // margin), unlike Templates 1/2 which have no padding of their own and
-    // rely on this margin for breathing room — so only Template 3 skips it.
-    const margin =
-      resume.templateId === "template-3"
-        ? { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" }
-        : { top: "8mm", right: "8mm", bottom: "8mm", left: "8mm" };
+    // Templates 3 & 4 have full-bleed color backgrounds (a header band, a
+    // sidebar) designed to reach the page edge, unlike Templates 1/2 which
+    // have no padding of their own and rely on this margin for breathing
+    // room — so only the full-bleed templates skip it.
+    const FULL_BLEED_TEMPLATES = new Set(["template-3", "template-4"]);
+    const margin = FULL_BLEED_TEMPLATES.has(resume.templateId)
+      ? { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" }
+      : { top: "8mm", right: "8mm", bottom: "8mm", left: "8mm" };
 
     const pdfData = await page.pdf({
       format: "A4",

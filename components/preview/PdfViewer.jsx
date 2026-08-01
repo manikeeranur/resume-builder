@@ -46,7 +46,11 @@ export default function PdfViewer({ resume }) {
   useEffect(() => {
     const measure = () => {
       if (!containerRef.current) return;
-      setPageWidth(Math.min(MAX_PAGE_WIDTH_PX, containerRef.current.offsetWidth - 32));
+      // Rounded to a whole pixel: react-pdf renders a canvas at exactly
+      // this width, and a fractional canvas width (offsetWidth can be
+      // subpixel in modern browsers) has caused visible rendering seams
+      // for some PDFs.
+      setPageWidth(Math.floor(Math.min(MAX_PAGE_WIDTH_PX, containerRef.current.offsetWidth - 32)));
     };
     measure();
     window.addEventListener("resize", measure);

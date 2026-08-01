@@ -22,7 +22,11 @@ export default function ExactFirstPagePreview({ resume }) {
 
   useEffect(() => {
     const measure = () => {
-      if (containerRef.current) setWidth(containerRef.current.offsetWidth);
+      // Rounded to a whole pixel: react-pdf renders a canvas at exactly
+      // this width, and a fractional canvas width (offsetWidth can be
+      // subpixel in modern browsers) has caused visible rendering seams
+      // for some PDFs.
+      if (containerRef.current) setWidth(Math.floor(containerRef.current.offsetWidth));
     };
     measure();
     window.addEventListener("resize", measure);
