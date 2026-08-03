@@ -118,13 +118,13 @@ export default function Template5({ resume }) {
         }`}
       >
         <div
-          // The negative first-fragment margin offsets the sidebar's top
-          // padding so Details aligns with Experience. Without cloned box
-          // decorations, an exhausted sidebar does not create a padded
-          // empty fragment on the following page.
+          // The negative top margin offsets the sidebar's own top padding
+          // so Details aligns with Experience. (No bottom counterpart: a
+          // matching bottom bleed used to push content that already fit
+          // on one page into a near-empty trailing page.)
           className={`${hasAsideContent ? "" : "hidden"} ${
             hasMainContent ? "col-start-2" : "col-start-1"
-          } row-start-1 -mt-[200px] -mb-[200px] pt-[200px] pr-12 pb-[200px]`}
+          } row-start-1 -mt-[200px] pt-[200px] pr-12`}
         >
         {(pi.location || pi.phone || pi.email) && (
           // pt- (not mt-) so this block keeps its top breathing room even
@@ -199,7 +199,7 @@ export default function Template5({ resume }) {
         </div>
 
         <div
-          className={`${hasMainContent ? "" : "hidden"} col-start-1 row-start-1 -mb-[200px] min-w-0 px-10 pb-[200px]`}
+          className={`${hasMainContent ? "" : "hidden"} col-start-1 row-start-1 min-w-0 px-10`}
         >
         {experiences.length > 0 && (
           <div className="break-inside-avoid">
