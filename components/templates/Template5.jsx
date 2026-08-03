@@ -52,13 +52,16 @@ export default function Template5({ resume }) {
     pi.github && { label: "GitHub", href: pi.github },
     pi.portfolio && { label: "Portfolio", href: pi.portfolio },
   ].filter(Boolean);
+  const hasMainContent = experiences.length > 0 || education.length > 0;
+  const hasAsideContent = Boolean(
+    pi.location || pi.phone || pi.email || skills.length || links.length || languages.length
+  );
 
   return (
     <div
       id="resume-content"
-      // overflow-hidden doubles as a clearfix (establishes a block
-      // formatting context) so the container still grows to the floated
-      // aside's full height even though nothing "clears" it explicitly.
+      // overflow-hidden keeps the decorative artwork clipped to the
+      // resume canvas in screen previews.
       // bg-cover/no-repeat is the sane single-page fallback (thumbnails,
       // scaled previews); print: overrides it to tile the same artwork
       // once per physical page. The 1201px isn't arbitrary: at this
@@ -80,29 +83,49 @@ export default function Template5({ resume }) {
         "--resume-primary": themeConfig?.primaryColor || ACCENT,
       }}
     >
-      <div
-        // float (not flex) is what makes the reclaimed-width trick work:
-        // main's text wraps around this box for exactly as long as it has
-        // content, then automatically reclaims the full page width once it
-        // ends — flexbox has no equivalent since a flex sibling always
-        // reserves its column's width for the whole row's height. ml-10 is
-        // the gap to main content: a float's MARGIN box (not just its
-        // border box) is what main's text wraps around, so without this
-        // the text butts right up against the aside's edge. pb (not the
-        // plain py the top side uses) is much larger than a normal margin
-        // because the decorative background's bottom artwork rises well
-        // into the page — content needs real clearance from those peaks
-        // on every page, not just a cosmetic gap.
-        className="float-right ml-10 w-[230px] px-10 pt-11 pb-[190px]"
-      >
-        {/* Lines up "Details" with "Experience" on the left: that column
-            starts with Name/Title/Summary before its first heading, so
-            this reserves roughly the same height here. Approximate, not
-            pixel-exact, since summary length varies resume to resume —
-            true dynamic matching would need live height measurement,
-            which the float-based reclaim-width layout can't do. */}
-        <div className="h-[172px]" />
+      {/* Full-width header sits above both content columns. */}
+      <header className="relative z-10 break-inside-avoid px-10 pt-11">
+        <div className="text-[38px] font-bold leading-[1.05]" style={{ color: NAME_COLOR }}>
+          {pi.fullName || "Your Name"}
+        </div>
+        <div className="mt-1 text-[16px] font-bold" style={{ color: "var(--resume-primary)" }}>
+          {pi.title || "Your Title"}
+        </div>
 
+        {sections.summary && (
+          <div className="mt-4 max-w-[690px] text-[13.5px] leading-[1.6] text-[#333333]">
+            {sections.summary}
+          </div>
+        )}
+      </header>
+
+      {/* A fixed print layer is repeated by Chromium on every physical
+          page. The resume container's own background still handles the
+          screen preview, while this layer paints the unused remainder of
+          the final PDF page after the content box has ended. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none hidden print:fixed print:inset-0 print:z-0 print:block print:h-[1201px] print:w-[850px] print:bg-cover print:bg-top print:bg-no-repeat"
+        style={{
+          backgroundColor: "#f6f8fd",
+          backgroundImage: "url(/templates/bg-template-5.png)",
+        }}
+      />
+
+      <div
+        className={`relative z-10 grid items-start pt-7 ${
+          hasMainContent && hasAsideContent ? "grid-cols-[minmax(0,1fr)_40%] gap-x-10" : "grid-cols-1"
+        }`}
+      >
+        <div
+          // The negative first-fragment margin offsets the sidebar's top
+          // padding so Details aligns with Experience. Without cloned box
+          // decorations, an exhausted sidebar does not create a padded
+          // empty fragment on the following page.
+          className={`${hasAsideContent ? "" : "hidden"} ${
+            hasMainContent ? "col-start-2" : "col-start-1"
+          } row-start-1 -mt-[200px] -mb-[200px] pt-[200px] pr-12 pb-[200px]`}
+        >
         {(pi.location || pi.phone || pi.email) && (
           // pt- (not mt-) so this block keeps its top breathing room even
           // when break-inside-avoid pushes it to start a fresh printed
@@ -134,7 +157,7 @@ export default function Template5({ resume }) {
         )}
 
         {skills.length > 0 && (
-          <div className="pt-9 break-inside-avoid">
+          <div className="pt-5 break-inside-avoid">
             <AsideHeading>Skills</AsideHeading>
             {/* Wrapped pill tags rather than one bar per skill: a real
                 resume can list dozens of skills, and a bar-per-line
@@ -148,7 +171,7 @@ export default function Template5({ resume }) {
         )}
 
         {links.length > 0 && (
-          <div className="pt-9 break-inside-avoid">
+          <div className="pt-5 break-inside-avoid">
             <AsideHeading>Links</AsideHeading>
             <div>
               {links.map((l, i) => (
@@ -164,7 +187,7 @@ export default function Template5({ resume }) {
         )}
 
         {languages.length > 0 && (
-          <div className="pt-9 break-inside-avoid">
+          <div className="pt-5 break-inside-avoid">
             <AsideHeading>Languages</AsideHeading>
             <div className="flex flex-wrap gap-1.5">
               {languages.map((l, i) => (
@@ -173,25 +196,13 @@ export default function Template5({ resume }) {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Plain block, not a flex item — its text needs to actually flow
-          around the floated aside (narrow while the float is active,
-          full width once it ends), which a flex/grid sibling can't do. */}
-      <div className="px-10 pt-11 pb-[190px]">
-        <div className="text-[38px] font-bold leading-[1.05]" style={{ color: NAME_COLOR }}>
-          {pi.fullName || "Your Name"}
-        </div>
-        <div className="mt-1 text-[16px] font-bold" style={{ color: "var(--resume-primary)" }}>
-          {pi.title || "Your Title"}
         </div>
 
-        {sections.summary && (
-          <div className="mt-4 text-[13.5px] leading-[1.6] text-[#333333]">{sections.summary}</div>
-        )}
-
+        <div
+          className={`${hasMainContent ? "" : "hidden"} col-start-1 row-start-1 -mb-[200px] min-w-0 px-10 pb-[200px]`}
+        >
         {experiences.length > 0 && (
-          <div className="break-inside-avoid pt-7">
+          <div className="break-inside-avoid">
             <MainHeading>Experience</MainHeading>
             <div>
               {experiences.map((exp, i) => (
@@ -217,7 +228,7 @@ export default function Template5({ resume }) {
         )}
 
         {education.length > 0 && (
-          <div className="break-inside-avoid pt-7">
+          <div className="break-inside-avoid pt-5">
             <MainHeading>Education</MainHeading>
             <div>
               {education.map((ed, i) => (
@@ -231,6 +242,7 @@ export default function Template5({ resume }) {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
