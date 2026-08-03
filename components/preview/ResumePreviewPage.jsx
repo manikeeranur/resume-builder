@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye } from "lucide-react";
 import { IconPalette, IconDownload } from "@tabler/icons-react";
 import TopBar from "@/components/layout/TopBar";
@@ -18,6 +18,7 @@ const PdfViewer = dynamic(() => import("./PdfViewer"), {
 });
 
 export default function ResumePreviewPage({ resume: initialResume }) {
+  const router = useRouter();
   const [resume, setResume] = useState(initialResume);
   const [downloading, setDownloading] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
@@ -68,7 +69,7 @@ export default function ResumePreviewPage({ resume: initialResume }) {
           compact shared bar isn't worth the consistency trade-off. */}
       <div className="sticky top-0 z-20 hidden lg:block">
         <TopBar
-          backHref={`/resumes/${resume._id}/edit`}
+          onBack={() => router.back()}
           title={resume.title || "Resume Preview"}
           subtitle="Review your resume before you download"
         >
@@ -79,13 +80,14 @@ export default function ResumePreviewPage({ resume: initialResume }) {
       <div className="sticky top-0 z-20 border-b border-border bg-white/95 shadow-sm backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <Link
-              href={`/resumes/${resume._id}/edit`}
-              aria-label="Back to editor"
+            <button
+              type="button"
+              onClick={() => router.back()}
+              aria-label="Back"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-primary hover:bg-primary-light hover:text-primary"
             >
               <ArrowLeft size={16} />
-            </Link>
+            </button>
             <span
               className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:flex"
               style={{ background: "var(--primary-light)", color: "var(--primary)" }}
