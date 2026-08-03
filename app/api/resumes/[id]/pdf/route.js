@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOwnedResume } from "@/lib/getOwnedResume";
-import { launchBrowser, forwardCookies } from "@/lib/launchBrowser";
+import { launchBrowser } from "@/lib/launchBrowser";
+import { renderResumePdf } from "@/lib/renderResumePdf";
+import Resume from "@/lib/models/Resume";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,8 +21,6 @@ export async function GET(req, { params }) {
   let browser = null;
   try {
     browser = await launchBrowser();
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1024, height: 1200 });
 
     // Prefer the incoming request's own origin — it's always correct,
     // whereas NEXTAUTH_URL is a manually-set env var that can drift out of
@@ -27,46 +28,13 @@ export async function GET(req, { params }) {
     // localhost in production) and would otherwise send Puppeteer to an
     // unreachable host.
     const origin = new URL(req.url).origin || process.env.NEXTAUTH_URL;
-    await forwardCookies(page, req, origin);
 
-    await page.goto(`${origin}/resumes/${params.id}/print`, {
-      waitUntil: "networkidle0",
-      timeout: 60000,
+    const pdfBuffer = await renderResumePdf(browser, {
+      resumeId: params.id,
+      templateId: resume.templateId,
+      origin,
+      req,
     });
-    await page.waitForSelector("#resume-content", { timeout: 15000 });
-
-    // Fonts load async over the network (see globals.css @import) and
-    // Puppeteer starts with a cold cache every request, so networkidle0
-    // alone doesn't guarantee the real webfont has swapped in yet. Without
-    // this, the PDF can render with fallback-font metrics that wrap text
-    // differently than the (font-cached) browser preview, shifting page
-    // breaks by a few lines.
-    await page.evaluate(() => document.fonts.ready);
-
-    await page.addStyleTag({
-      content: `
-        html, body { background: #fff !important; overflow: visible !important; }
-        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      `,
-    });
-
-    // Templates 3, 4 & 5 have full-bleed backgrounds (a header band, a
-    // sidebar, a decorative page image) designed to reach the page edge,
-    // unlike Templates 1/2 which have no padding of their own and rely on
-    // this margin for breathing room — so only the full-bleed templates
-    // skip it.
-    const FULL_BLEED_TEMPLATES = new Set(["template-3", "template-4", "template-5"]);
-    const margin = FULL_BLEED_TEMPLATES.has(resume.templateId)
-      ? { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" }
-      : { top: "8mm", right: "8mm", bottom: "8mm", left: "8mm" };
-
-    const pdfData = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin,
-    });
-
-    const pdfBuffer = Buffer.isBuffer(pdfData) ? pdfData : Buffer.from(pdfData);
     const filename = `${(resume.title || "Resume").replace(/[^a-z0-9]+/gi, "_")}.pdf`;
 
     return new NextResponse(pdfBuffer, {
@@ -91,4 +59,22 @@ export async function GET(req, { params }) {
       } catch (_) {}
     }
   }
+}
+
+// Called by the explicit "Download" button (not the in-page PDF viewer,
+// which only GETs this route to display it) so "Total Downloads" reflects
+// actual downloads rather than every preview render.
+export async function POST(req, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const resume = await getOwnedResume(params.id, session.user.id);
+  if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // timestamps: false — a download doesn't change the resume's content, so
+  // it shouldn't bump updatedAt and invalidate the cached preview PDF.
+  await Resume.updateOne({ _id: params.id }, { $inc: { downloadCount: 1 } }, { timestamps: false });
+  revalidatePath("/dashboard");
+
+  return NextResponse.json({ success: true });
 }

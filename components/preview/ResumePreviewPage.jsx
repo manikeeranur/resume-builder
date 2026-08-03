@@ -8,6 +8,7 @@ import { IconPalette, IconDownload } from "@tabler/icons-react";
 import TopBar from "@/components/layout/TopBar";
 import ThemeModal from "@/components/editor/ThemeModal";
 import RippleButton from "@/components/ui/RippleButton";
+import { downloadResumePdf } from "@/lib/downloadResumePdf";
 
 // pdf.js touches browser-only APIs (e.g. DOMMatrix) that don't exist during
 // Next.js's server render, so this must never be rendered on the server.
@@ -15,18 +16,6 @@ const PdfViewer = dynamic(() => import("./PdfViewer"), {
   ssr: false,
   loading: () => <p className="py-12 text-center text-sm text-text-secondary">Loading preview…</p>,
 });
-
-async function downloadFile(url, filename) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Download failed");
-  const blob = await res.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = objectUrl;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(objectUrl);
-}
 
 export default function ResumePreviewPage({ resume: initialResume }) {
   const [resume, setResume] = useState(initialResume);
@@ -37,8 +26,7 @@ export default function ResumePreviewPage({ resume: initialResume }) {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const filename = `${(resume.title || "Resume").replace(/[^a-z0-9]+/gi, "_")}.pdf`;
-      await downloadFile(`/api/resumes/${resume._id}/pdf`, filename);
+      await downloadResumePdf(resume);
     } catch (err) {
       alert("Failed to download PDF. Please try again.");
     } finally {

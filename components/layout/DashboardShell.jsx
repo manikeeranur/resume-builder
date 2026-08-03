@@ -1,27 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Menu,
-  X,
-  LayoutGrid,
-  LayoutTemplate,
-  CircleUserRound,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from "lucide-react";
+import { Menu, X, LayoutGrid, LayoutTemplate, CircleUserRound, FileText } from "lucide-react";
 import UserMenu from "./UserMenu";
 import TopNavbar from "./TopNavbar";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { href: "/resumes", label: "Resumes", icon: FileText },
   { href: "/templates", label: "Templates", icon: LayoutTemplate },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
 ];
-
-const COLLAPSE_KEY = "resumepro_sidebar_collapsed";
 
 function useActiveNav() {
   const pathname = usePathname();
@@ -73,25 +64,6 @@ function NavLinks({ active, collapsed, onNavigate }) {
 export default function DashboardShell({ user, avatarUrl, children }) {
   const active = useActiveNav();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(COLLAPSE_KEY);
-    if (stored === "1") setCollapsed(true);
-    setHydrated(true);
-  }, []);
-
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      window.localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
-      return next;
-    });
-  };
-
-  const sidebarWidth = collapsed ? "md:w-20" : "md:w-64";
-  const mainOffset = collapsed ? "md:ml-20" : "md:ml-64";
 
   return (
     <div className="min-h-screen bg-bg">
@@ -130,30 +102,16 @@ export default function DashboardShell({ user, avatarUrl, children }) {
         </div>
       )}
 
-      {/* Desktop sidebar — fixed to the viewport, full height */}
-      <aside
-        className={`hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:h-screen ${sidebarWidth} md:flex-col md:border-r md:border-border md:bg-white md:px-4 md:py-6 ${
-          hydrated ? "transition-[width] duration-200" : ""
-        }`}
-      >
+      {/* Desktop sidebar — fixed to the viewport, full height, always icon-only */}
+      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:h-screen md:w-20 md:flex-col md:border-r md:border-border md:bg-white md:px-4 md:py-6">
         <div className="mb-8 px-1">
-          <Logo collapsed={collapsed} />
+          <Logo collapsed />
         </div>
-        <NavLinks active={active} collapsed={collapsed} />
-        <UserMenu user={user} avatarUrl={avatarUrl} collapsed={collapsed} />
-
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="mt-4 flex h-8 w-8 items-center justify-center self-center rounded-lg border border-border text-text-secondary hover:border-primary hover:text-primary"
-        >
-          {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-        </button>
+        <NavLinks active={active} collapsed />
+        <UserMenu user={user} avatarUrl={avatarUrl} collapsed />
       </aside>
 
-      <main className={`min-w-0 ${mainOffset} ${hydrated ? "transition-[margin] duration-200" : ""}`}>
+      <main className="min-w-0 md:ml-20">
         <TopNavbar user={user} avatarUrl={avatarUrl} />
         {children}
       </main>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
@@ -41,6 +42,12 @@ export async function POST(req) {
     themeConfig,
     sections,
   });
+
+  // Next.js's client-side router cache would otherwise keep serving the
+  // pre-creation dashboard/resumes list after router.push() navigates away
+  // from here, since that's a client-side transition, not a fresh request.
+  revalidatePath("/dashboard");
+  revalidatePath("/resumes");
 
   return NextResponse.json(resume, { status: 201 });
 }

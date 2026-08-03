@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Resume from "@/lib/models/Resume";
 import Profile from "@/lib/models/Profile";
-import ResumeCard from "@/components/dashboard/ResumeCard";
+import ResumeGrid from "@/components/dashboard/ResumeGrid";
 import StatCard from "@/components/dashboard/StatCard";
 import { profileCompleteness } from "@/lib/profileCompleteness";
 import { emptyResumeSections } from "@/lib/resumeDefaults";
@@ -16,15 +16,19 @@ export default async function DashboardPage() {
   if (!session) redirect("/login");
 
   await dbConnect();
-  const [resumes, profile] = await Promise.all([
-    Resume.find({ userId: session.user.id }).sort({ updatedAt: -1 }).limit(6),
+  const [resumes, profile, totalResumes, allDownloadCounts] = await Promise.all([
+    Resume.find({ userId: session.user.id }).sort({ createdAt: -1 }).limit(4),
     Profile.findOne({ userId: session.user.id }),
+    // Recent widget below only fetches 4 — this stat needs the true total.
+    Resume.countDocuments({ userId: session.user.id }),
+    Resume.find({ userId: session.user.id }).select("downloadCount"),
   ]);
+  const totalDownloads = allDownloadCounts.reduce((sum, r) => sum + (r.downloadCount || 0), 0);
   const completeness = profileCompleteness(profile?.sections || emptyResumeSections);
 
   const stats = [
-    { icon: FileText, value: resumes.length, label: "Resumes Created", tint: { bg: "var(--primary-light)", fg: "var(--primary)" } },
-    { icon: Download, value: 0, label: "Total Downloads", tint: { bg: "#e0f2fe", fg: "#0284c7" } },
+    { icon: FileText, value: totalResumes, label: "Resumes Created", tint: { bg: "var(--primary-light)", fg: "var(--primary)" } },
+    { icon: Download, value: totalDownloads, label: "Total Downloads", tint: { bg: "#e0f2fe", fg: "#0284c7" } },
     { icon: Eye, value: 0, label: "Profile Views", tint: { bg: "#dcfce7", fg: "#16a34a" } },
     { icon: Target, value: "—", label: "Avg ATS Score", tint: { bg: "#fef3c7", fg: "#d97706" } },
   ];
@@ -71,6 +75,11 @@ export default async function DashboardPage() {
 
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-bold text-text">Recent Resumes</h2>
+          {resumes.length > 0 && (
+            <Link href="/resumes" className="text-sm font-semibold text-primary hover:underline">
+              View all →
+            </Link>
+          )}
         </div>
 
         {resumes.length === 0 ? (
@@ -87,11 +96,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {resumes.map((r) => (
-              <ResumeCard key={r._id} resume={JSON.parse(JSON.stringify(r.toObject()))} />
-            ))}
-          </div>
+          <ResumeGrid resumes={resumes.map((r) => JSON.parse(JSON.stringify(r.toObject())))} />
         )}
       </div>
     </>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOwnedResume } from "@/lib/getOwnedResume";
@@ -35,6 +36,9 @@ export async function PATCH(req, { params }) {
   resume.lastEditedAt = new Date();
   await resume.save();
 
+  revalidatePath("/dashboard");
+  revalidatePath("/resumes");
+
   return NextResponse.json(resume);
 }
 
@@ -46,5 +50,9 @@ export async function DELETE(req, { params }) {
   if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await resume.deleteOne();
+
+  revalidatePath("/dashboard");
+  revalidatePath("/resumes");
+
   return NextResponse.json({ success: true });
 }
