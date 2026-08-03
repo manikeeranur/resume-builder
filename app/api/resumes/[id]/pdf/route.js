@@ -50,11 +50,12 @@ export async function GET(req, { params }) {
       `,
     });
 
-    // Templates 3 & 4 have full-bleed color backgrounds (a header band, a
-    // sidebar) designed to reach the page edge, unlike Templates 1/2 which
-    // have no padding of their own and rely on this margin for breathing
-    // room — so only the full-bleed templates skip it.
-    const FULL_BLEED_TEMPLATES = new Set(["template-3", "template-4"]);
+    // Templates 3, 4 & 5 have full-bleed backgrounds (a header band, a
+    // sidebar, a decorative page image) designed to reach the page edge,
+    // unlike Templates 1/2 which have no padding of their own and rely on
+    // this margin for breathing room — so only the full-bleed templates
+    // skip it.
+    const FULL_BLEED_TEMPLATES = new Set(["template-3", "template-4", "template-5"]);
     const margin = FULL_BLEED_TEMPLATES.has(resume.templateId)
       ? { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" }
       : { top: "8mm", right: "8mm", bottom: "8mm", left: "8mm" };
