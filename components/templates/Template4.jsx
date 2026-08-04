@@ -75,7 +75,7 @@ export default function Template4({ resume }) {
         className="float-left mr-10 w-[264px] px-8 py-11 text-center print:min-h-screen"
         style={{ background: "var(--resume-primary)" }}
       >
-        {pi.photo && (
+        {pi.photo && pi.showPhoto !== false && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={pi.photo}

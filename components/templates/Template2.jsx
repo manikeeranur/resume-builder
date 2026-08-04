@@ -261,7 +261,7 @@ export default function Template2({ resume }) {
       style={{ fontFamily: "Inter, 'Segoe UI', sans-serif", ...themeVars(themeConfig) }}
     >
       <div className="flex items-start gap-5">
-        {pi.photo && (
+        {pi.photo && pi.showPhoto !== false && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={pi.photo} alt={pi.fullName} className="h-[140px] w-[140px] shrink-0 rounded-full object-cover" />
         )}

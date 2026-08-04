@@ -25,7 +25,7 @@ export default function Template1({ resume }) {
       style={{ fontFamily: "'Space Grotesk', sans-serif", ...themeVars(themeConfig) }}
     >
       <div className="flex items-start gap-8">
-        {pi.photo && (
+        {pi.photo && pi.showPhoto !== false && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={pi.photo}
