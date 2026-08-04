@@ -92,7 +92,7 @@ export default function Template3({ resume }) {
         "--resume-primary": themeConfig?.primaryColor || ACCENT,
       }}
     >
-      <div className="bg-[#eef9fc] p-[32px]">
+      <div className="bg-[#f9f9f9] p-[32px]">
         <div
           className={`grid gap-[35px] ${stacked ? "grid-cols-1" : "grid-cols-[1.55fr_0.95fr]"}`}
         >
