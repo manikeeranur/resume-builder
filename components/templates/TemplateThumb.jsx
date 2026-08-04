@@ -7,6 +7,7 @@ import { sampleResume2 } from "@/lib/sampleResume2";
 import { sampleResume3 } from "@/lib/sampleResume3";
 import { sampleResume4 } from "@/lib/sampleResume4";
 import { sampleResume5 } from "@/lib/sampleResume5";
+import { sampleResume6 } from "@/lib/sampleResume6";
 
 const FALLBACK_SAMPLES = {
   "template-1": sampleResume,
@@ -14,6 +15,7 @@ const FALLBACK_SAMPLES = {
   "template-3": sampleResume3,
   "template-4": sampleResume4,
   "template-5": sampleResume5,
+  "template-6": sampleResume6,
 };
 
 export default function TemplateThumb({ templateId, thumbnail }) {
