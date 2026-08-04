@@ -35,7 +35,7 @@ function EntryTitle({ children }) {
 function BodyText({ children, className = "" }) {
   return (
     <div
-      className={`text-[14px] leading-[1.42] text-[#171717] ${className}`}
+      className={`text-[14px] leading-[1.42] text-[#000000] ${className}`}
       style={{ letterSpacing: "0.5px" }}
     >
       {children}
