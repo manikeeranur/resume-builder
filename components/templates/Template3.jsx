@@ -1,5 +1,5 @@
 import { Mail, Phone } from "lucide-react";
-import { IconBrandLinkedin } from "@tabler/icons-react";
+import { IconBrandGithub, IconBrandLinkedin } from "@tabler/icons-react";
 import {
   dateRange,
   formatFullDate,
@@ -34,7 +34,10 @@ function EntryTitle({ children }) {
 
 function BodyText({ children, className = "" }) {
   return (
-    <div className={`text-[14px] leading-[1.42] text-[#171717] ${className}`}>
+    <div
+      className={`text-[14px] leading-[1.42] text-[#171717] ${className}`}
+      style={{ letterSpacing: "0.5px" }}
+    >
       {children}
     </div>
   );
@@ -143,6 +146,49 @@ export default function Template3({ resume }) {
               </div>
             )}
 
+            {pi.phone && (
+              <div>
+                <div className="flex items-center gap-2">
+                  <Phone size={16} style={{ color: "var(--resume-primary)" }} />
+                  <div
+                    className="text-[14px] font-medium"
+                    style={{ color: "var(--resume-primary)" }}
+                  >
+                    Phone
+                  </div>
+                </div>
+                <a
+                  href={`tel:${pi.phone}`}
+                  className="mt-[2px] block break-all text-[14px] text-black decoration-[1.5px] no-underline"
+                >
+                  {pi.phone}
+                </a>
+              </div>
+            )}
+
+            {pi.github && (
+              <div>
+                <div className="flex items-center gap-2">
+                  <IconBrandGithub
+                    size={16}
+                    style={{ color: "var(--resume-primary)" }}
+                  />
+                  <div
+                    className="text-[14px] font-medium"
+                    style={{ color: "var(--resume-primary)" }}
+                  >
+                    GitHub
+                  </div>
+                </div>
+                <a
+                  href={pi.github}
+                  className="mt-[2px] block break-all text-[14px] text-black decoration-[1.5px] no-underline"
+                >
+                  {pi.github.replace(/^https?:\/\//, "")}
+                </a>
+              </div>
+            )}
+
             {pi.linkedin && (
               <div>
                 <div className="flex items-center gap-2">
@@ -165,26 +211,6 @@ export default function Template3({ resume }) {
                 </a>
               </div>
             )}
-
-            {pi.phone && (
-              <div>
-                <div className="flex items-center gap-2">
-                  <Phone size={16} style={{ color: "var(--resume-primary)" }} />
-                  <div
-                    className="text-[14px] font-medium"
-                    style={{ color: "var(--resume-primary)" }}
-                  >
-                    Phone
-                  </div>
-                </div>
-                <a
-                  href={`tel:${pi.phone}`}
-                  className="mt-[2px] block break-all text-[14px] text-black decoration-[1.5px] no-underline"
-                >
-                  {pi.phone}
-                </a>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -199,7 +225,7 @@ export default function Template3({ resume }) {
         className={`p-[32px] ${stacked ? "" : "columns-2 gap-x-[34px]"}`}
       >
         <div className="break-after-avoid">
-          <SectionHeading>Work experience</SectionHeading>
+          <SectionHeading>Work Experience</SectionHeading>
         </div>
 
         <div className="space-y-[24px]">
@@ -251,11 +277,14 @@ export default function Template3({ resume }) {
           {education.map((ed, index) => (
             <article key={`edu-${index}`} className="break-inside-avoid">
               <EntryTitle>{ed.degree}</EntryTitle>
-              <BodyText className="mt-1">
-                {[ed.institution, dateRange(ed.startDate, ed.endDate)]
-                  .filter(Boolean)
-                  .join(", ")}
-              </BodyText>
+              {ed.institution && (
+                <BodyText className="mt-1">{ed.institution}</BodyText>
+              )}
+              {dateRange(ed.startDate, ed.endDate) && (
+                <BodyText className="text-[12px] text-gray-500">
+                  {dateRange(ed.startDate, ed.endDate)}
+                </BodyText>
+              )}
             </article>
           ))}
 
@@ -281,7 +310,10 @@ export default function Template3({ resume }) {
           </div>
         )}
 
-        {(pi.location || languageNames || pi.dateOfBirth) && (
+        {(pi.location ||
+          languageNames ||
+          pi.portfolio ||
+          pi.dateOfBirth) && (
           <div className="mt-[28px] break-inside-avoid">
             <SectionHeading>Personal Details</SectionHeading>
 
@@ -295,6 +327,13 @@ export default function Template3({ resume }) {
               {pi.dateOfBirth && (
                 <BodyText>
                   Date of Birth: {formatFullDate(pi.dateOfBirth)}.
+                </BodyText>
+              )}
+
+               {pi.portfolio && (
+                <BodyText>
+                  Portfolio:{" "}
+                  {pi.portfolio.replace(/^https?:\/\//, "")}
                 </BodyText>
               )}
             </div>
