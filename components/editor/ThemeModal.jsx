@@ -4,11 +4,13 @@ import { useState } from "react";
 import { Check, RotateCcw, X } from "lucide-react";
 import { defaultThemeConfig, THEME_COLORS, THEME_FONTS } from "@/lib/resumeDefaults";
 import { getTemplate } from "@/lib/templates";
+import { isLocalDraftId, saveLocalDraft } from "@/lib/localResume";
 import ExactFirstPagePreview from "./LazyExactFirstPagePreview";
 
-export default function ThemeModal({ resume, onClose, onSaved }) {
+export default function ThemeModal({ resume, onClose, onSaved, isLocal }) {
   const [themeConfig, setThemeConfig] = useState(resume.themeConfig);
   const [status, setStatus] = useState("idle");
+  const local = isLocal ?? isLocalDraftId(resume._id);
 
   const update = (key, value) => setThemeConfig((prev) => ({ ...prev, [key]: value }));
 
@@ -23,6 +25,12 @@ export default function ThemeModal({ resume, onClose, onSaved }) {
 
   const save = async () => {
     setStatus("saving");
+    if (local) {
+      saveLocalDraft({ ...resume, themeConfig });
+      onSaved(themeConfig);
+      onClose();
+      return;
+    }
     try {
       const res = await fetch(`/api/resumes/${resume._id}`, {
         method: "PATCH",
@@ -153,9 +161,25 @@ export default function ThemeModal({ resume, onClose, onSaved }) {
 
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Preview</p>
-            <ExactFirstPagePreview resume={resume} />
+            {local ? (
+              <div className="relative flex aspect-[210/297] items-center justify-center overflow-hidden rounded-lg border border-border bg-bg">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={getTemplate(resume.templateId).thumbnail}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover object-top opacity-25"
+                />
+                <span className="relative px-6 text-center text-xs font-semibold text-text-secondary">
+                  Sign in to see the exact PDF preview
+                </span>
+              </div>
+            ) : (
+              <ExactFirstPagePreview resume={resume} />
+            )}
             <p className="mt-2 text-[11px] leading-snug text-text-secondary">
-              Shows your saved resume's exact first page. Save changes to update it.
+              {local
+                ? "Colors and layout still apply to your draft — the exact PDF preview needs you signed in."
+                : "Shows your saved resume's exact first page. Save changes to update it."}
             </p>
           </div>
         </div>

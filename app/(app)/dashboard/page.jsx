@@ -13,7 +13,7 @@ import { emptyResumeSections } from "@/lib/resumeDefaults";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session) redirect("/templates");
 
   await dbConnect();
   const [resumes, profile, totalResumes, allDownloadCounts] = await Promise.all([

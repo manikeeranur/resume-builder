@@ -14,7 +14,7 @@ const PAGE_SIZE = 4;
 
 export default async function ResumesPage({ searchParams }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session) redirect("/templates");
 
   const page = Math.max(1, parseInt(searchParams?.page, 10) || 1);
   const sort = searchParams?.sort === "oldest" ? "oldest" : "newest";

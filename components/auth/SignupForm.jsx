@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 export default function SignupForm({ googleEnabled }) {
   const router = useRouter();
@@ -101,9 +102,7 @@ export default function SignupForm({ googleEnabled }) {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-text">Password</label>
-          <input
-            className="input-field"
-            type="password"
+          <PasswordInput
             name="password"
             required
             minLength={6}

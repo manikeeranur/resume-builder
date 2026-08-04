@@ -2,18 +2,41 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { TEMPLATE_LIST } from "@/lib/templates";
+import { emptyResumeSections, defaultThemeConfig } from "@/lib/resumeDefaults";
+import { createLocalDraftId, saveLocalDraft } from "@/lib/localResume";
 import TemplateThumb from "./TemplateThumb";
 
 export default function TemplateGalleryGrid() {
   const router = useRouter();
+  const { status } = useSession();
   const [creatingId, setCreatingId] = useState(null);
   const [error, setError] = useState("");
 
   const handleSelect = async (template) => {
-    if (!template.available || creatingId) return;
+    // status === "loading" is the brief window before the client has
+    // resolved whether there's a session at all — wait it out rather than
+    // risk treating an actually-logged-in user as anonymous.
+    if (!template.available || creatingId || status === "loading") return;
     setCreatingId(template.id);
     setError("");
+
+    if (status === "unauthenticated") {
+      const draft = {
+        _id: createLocalDraftId(),
+        title: `${template.name} Resume`,
+        templateId: template.id,
+        themeConfig: template.defaultColor
+          ? { ...defaultThemeConfig, primaryColor: template.defaultColor }
+          : defaultThemeConfig,
+        sections: emptyResumeSections,
+      };
+      saveLocalDraft(draft);
+      router.push(`/resumes/${draft._id}/edit`);
+      return;
+    }
+
     try {
       const res = await fetch("/api/resumes", {
         method: "POST",

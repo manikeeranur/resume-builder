@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { CircleUserRound, LogOut } from "lucide-react";
+import { CircleUserRound, LogIn, LogOut } from "lucide-react";
+import LoginModal from "@/components/auth/LoginModal";
 
-export default function AvatarMenu({ user, avatarUrl }) {
+export default function AvatarMenu({ user, avatarUrl, googleEnabled }) {
   const [open, setOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const containerRef = useRef(null);
   const src = avatarUrl || user?.image || null;
   const initial = (user?.name || "?").charAt(0).toUpperCase();
@@ -24,6 +26,28 @@ export default function AvatarMenu({ user, avatarUrl }) {
       document.removeEventListener("keydown", handleKey);
     };
   }, [open]);
+
+  if (!user) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setLoginOpen(true)}
+          className="btn-primary flex items-center gap-1.5 px-4 py-2 text-sm"
+        >
+          <LogIn size={15} />
+          Sign in
+        </button>
+        {loginOpen && (
+          <LoginModal
+            googleEnabled={googleEnabled}
+            onClose={() => setLoginOpen(false)}
+            onSuccess={() => setLoginOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div ref={containerRef} className="relative">
@@ -72,7 +96,7 @@ export default function AvatarMenu({ user, avatarUrl }) {
             </Link>
             <button
               type="button"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => signOut({ callbackUrl: "/templates" })}
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
             >
               <LogOut size={17} />

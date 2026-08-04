@@ -8,7 +8,7 @@ import ProfileEditor from "@/components/profile/ProfileEditor";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session) redirect("/templates");
 
   await dbConnect();
   const profile = await Profile.findOne({ userId: session.user.id });

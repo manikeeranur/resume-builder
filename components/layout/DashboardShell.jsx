@@ -61,7 +61,7 @@ function NavLinks({ active, collapsed, onNavigate }) {
   );
 }
 
-export default function DashboardShell({ user, avatarUrl, children }) {
+export default function DashboardShell({ user, avatarUrl, googleEnabled, children }) {
   const active = useActiveNav();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -97,7 +97,7 @@ export default function DashboardShell({ user, avatarUrl, children }) {
               </button>
             </div>
             <NavLinks active={active} onNavigate={() => setMobileOpen(false)} />
-            <UserMenu user={user} avatarUrl={avatarUrl} />
+            <UserMenu user={user} avatarUrl={avatarUrl} googleEnabled={googleEnabled} />
           </aside>
         </div>
       )}
@@ -108,11 +108,11 @@ export default function DashboardShell({ user, avatarUrl, children }) {
           <Logo collapsed />
         </div>
         <NavLinks active={active} collapsed />
-        <UserMenu user={user} avatarUrl={avatarUrl} collapsed />
+        <UserMenu user={user} avatarUrl={avatarUrl} collapsed googleEnabled={googleEnabled} />
       </aside>
 
       <main className="min-w-0 md:ml-20">
-        <TopNavbar user={user} avatarUrl={avatarUrl} />
+        <TopNavbar user={user} avatarUrl={avatarUrl} googleEnabled={googleEnabled} />
         {children}
       </main>
     </div>

@@ -57,7 +57,19 @@ export default function ExactFirstPagePreview({ resume, pdfData }) {
       </span>
     </div>
   );
-  const error = <div className="flex aspect-[210/297] items-center justify-center bg-bg text-xs text-red-500">Couldn't load preview.</div>;
+  // Falls back to the template's own static preview image rather than an
+  // error message — the exact rendered PDF failed to load, but the card
+  // should still look like a resume, not show a broken-state notice.
+  const error = (
+    <div className="aspect-[210/297] overflow-hidden bg-bg">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={getTemplate(resume.templateId).thumbnail}
+        alt=""
+        className="h-full w-full object-cover object-top"
+      />
+    </div>
+  );
 
   if (pdfData === null) return <div ref={containerRef} className="w-full overflow-hidden rounded-lg">{loading}</div>;
   if (pdfData === false) return <div ref={containerRef} className="w-full overflow-hidden rounded-lg">{error}</div>;

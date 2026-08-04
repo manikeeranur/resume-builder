@@ -28,12 +28,20 @@ export async function POST(req) {
   }
 
   await dbConnect();
-  const profile = await Profile.findOne({ userId: session.user.id });
-  const sections = profile ? JSON.parse(JSON.stringify(profile.sections)) : emptyResumeSections;
 
-  const themeConfig = template.defaultColor
-    ? { ...defaultThemeConfig, primaryColor: template.defaultColor }
-    : defaultThemeConfig;
+  // A DraftPromoter call (turning an anonymous local draft into a real,
+  // account-owned resume post-login) already has real sections/theme data
+  // to hand over — use it as-is instead of reseeding from the profile or
+  // template default.
+  let sections = body.sections;
+  if (!sections) {
+    const profile = await Profile.findOne({ userId: session.user.id });
+    sections = profile ? JSON.parse(JSON.stringify(profile.sections)) : emptyResumeSections;
+  }
+
+  const themeConfig =
+    body.themeConfig ||
+    (template.defaultColor ? { ...defaultThemeConfig, primaryColor: template.defaultColor } : defaultThemeConfig);
 
   const resume = await Resume.create({
     userId: session.user.id,

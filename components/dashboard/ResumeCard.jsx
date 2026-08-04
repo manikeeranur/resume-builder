@@ -11,12 +11,13 @@ import { getTemplate } from "@/lib/templates";
 export default function ResumeCard({ resume, pdfData }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   // pdfData is null only while a batch parent (ResumeGrid) is still loading
   // this card's preview — see ExactFirstPagePreview for the full contract.
   const previewLoading = pdfData === null;
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete "${resume.title}"? This can't be undone.`)) return;
+    setConfirmOpen(false);
     setDeleting(true);
     try {
       const res = await fetch(`/api/resumes/${resume._id}`, { method: "DELETE" });
@@ -35,6 +36,28 @@ export default function ResumeCard({ resume, pdfData }) {
         {deleting && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-xs font-semibold text-primary">
             Deleting…
+          </div>
+        )}
+        {confirmOpen && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/95 p-4 text-center">
+            <p className="text-sm font-semibold text-text">Delete this resume?</p>
+            <p className="text-xs text-text-secondary">This can&apos;t be undone.</p>
+            <div className="mt-1 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                className="btn-secondary px-3 py-1.5 text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-700"
+              >
+                Yes, delete
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -86,7 +109,7 @@ export default function ResumeCard({ resume, pdfData }) {
           </Link>
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setConfirmOpen(true)}
             disabled={deleting || previewLoading}
             title="Delete"
             aria-label="Delete resume"

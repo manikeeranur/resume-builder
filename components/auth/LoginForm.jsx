@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 export default function LoginForm({ googleEnabled }) {
   const router = useRouter();
@@ -74,14 +75,7 @@ export default function LoginForm({ googleEnabled }) {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-text">Password</label>
-          <input
-            className="input-field"
-            type="password"
-            name="password"
-            required
-            value={form.password}
-            onChange={handleChange}
-          />
+          <PasswordInput name="password" required value={form.password} onChange={handleChange} />
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

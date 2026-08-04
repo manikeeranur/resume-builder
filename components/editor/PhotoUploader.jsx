@@ -52,7 +52,11 @@ export default function PhotoUploader({ value, name, userId, onChange }) {
   };
 
   const handleSave = async () => {
-    if (!croppedAreaPixels || !userId) return;
+    if (!croppedAreaPixels) return;
+    if (!userId) {
+      setError("Sign in to upload a photo — click Preview above to continue.");
+      return;
+    }
     setUploading(true);
     setError("");
     try {

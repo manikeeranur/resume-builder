@@ -7,26 +7,48 @@ import TopBar from "@/components/layout/TopBar";
 import SectionForm from "./SectionForm";
 import ThemeModal from "./ThemeModal";
 import ExactFirstPagePreview from "./LazyExactFirstPagePreview";
+import LoginModal from "@/components/auth/LoginModal";
 import { SECTION_LIST } from "@/lib/resumeDefaults";
 import { SECTION_ICONS } from "@/lib/sectionIcons";
 import { profileCompleteness } from "@/lib/profileCompleteness";
 import { getTemplate } from "@/lib/templates";
+import { isLocalDraftId, loadLocalDraft, saveLocalDraft, setPendingPromotion } from "@/lib/localResume";
 
-export default function ResumeEditor({ resume: initialResume }) {
+// `resume` is null and `localId` is set for an anonymous visitor's
+// browser-local draft (see TemplateGalleryGrid + lib/localResume.js) — in
+// that case the actual draft is loaded from localStorage once mounted,
+// since a server component can't read it. Everything else about the
+// editor behaves the same either way; only autosave (localStorage vs. a
+// PATCH) and the Preview action (straight through vs. a login prompt)
+// branch on whether this is a local draft.
+export default function ResumeEditor({ resume: initialResume, localId, googleEnabled }) {
   const [resume, setResume] = useState(initialResume);
   const [activeSection, setActiveSection] = useState("personalInfo");
   const [status, setStatus] = useState("saved");
   const [editingTitle, setEditingTitle] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [pdfVersion, setPdfVersion] = useState(0);
   const saveTimer = useRef(null);
   const isFirstRender = useRef(true);
+  const isLocal = isLocalDraftId(resume?._id);
+
+  const [localDraftMissing, setLocalDraftMissing] = useState(false);
+
+  useEffect(() => {
+    if (!localId || initialResume) return;
+    const draft = loadLocalDraft(localId);
+    if (draft) setResume(draft);
+    else setLocalDraftMissing(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localId]);
 
   const updateSection = useCallback((key, value) => {
     setResume((prev) => ({ ...prev, sections: { ...prev.sections, [key]: value } }));
   }, []);
 
   useEffect(() => {
+    if (!resume) return;
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
@@ -35,6 +57,12 @@ export default function ResumeEditor({ resume: initialResume }) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       setStatus("saving");
+      if (isLocalDraftId(resume._id)) {
+        saveLocalDraft(resume);
+        setStatus("saved");
+        setPdfVersion((v) => v + 1);
+        return;
+      }
       try {
         const res = await fetch(`/api/resumes/${resume._id}`, {
           method: "PATCH",
@@ -49,7 +77,38 @@ export default function ResumeEditor({ resume: initialResume }) {
     }, 1200);
     return () => clearTimeout(saveTimer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resume.sections, resume.title]);
+  }, [resume?.sections, resume?.title]);
+
+  const handlePreviewClick = (e) => {
+    if (!isLocal) return; // real resume — let the Link navigate normally
+    e.preventDefault();
+    setPendingPromotion(resume._id, "preview");
+    setLoginModalOpen(true);
+  };
+
+  // useMemo must run on every render regardless of whether `resume` is
+  // loaded yet, so this sits above the early return below.
+  const completeness = useMemo(() => profileCompleteness(resume?.sections || {}), [resume?.sections]);
+
+  if (localDraftMissing) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-3 text-center text-sm text-text-secondary">
+        <p>
+          This draft isn&apos;t available in this browser — local drafts aren&apos;t saved to your account until you
+          sign in.
+        </p>
+        <Link href="/templates" className="btn-primary px-4 py-2 text-sm">
+          Choose a template
+        </Link>
+      </div>
+    );
+  }
+
+  if (!resume) {
+    return (
+      <div className="flex h-64 items-center justify-center text-sm text-text-secondary">Loading your draft…</div>
+    );
+  }
 
   const statusLabel = { saved: "All changes saved", saving: "Saving…", unsaved: "Unsaved changes" }[status];
   const pi = resume.sections.personalInfo || {};
@@ -59,12 +118,11 @@ export default function ResumeEditor({ resume: initialResume }) {
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase())
     .join("");
-  const completeness = useMemo(() => profileCompleteness(resume.sections), [resume.sections]);
   const templateName = getTemplate(resume.templateId).name;
 
   return (
     <>
-      <TopBar backHref="/dashboard" title={resume.title} subtitle={statusLabel}>
+      <TopBar backHref={isLocal ? "/templates" : "/dashboard"} title={resume.title} subtitle={statusLabel}>
         <button
           type="button"
           onClick={() => setThemeModalOpen(true)}
@@ -72,7 +130,11 @@ export default function ResumeEditor({ resume: initialResume }) {
         >
           Theme
         </button>
-        <Link href={`/resumes/${resume._id}/preview`} className="btn-primary px-3 py-2 text-xs sm:px-4 sm:text-sm">
+        <Link
+          href={`/resumes/${resume._id}/preview`}
+          onClick={handlePreviewClick}
+          className="btn-primary px-3 py-2 text-xs sm:px-4 sm:text-sm"
+        >
           Preview
         </Link>
       </TopBar>
@@ -80,12 +142,17 @@ export default function ResumeEditor({ resume: initialResume }) {
       {themeModalOpen && (
         <ThemeModal
           resume={resume}
+          isLocal={isLocal}
           onClose={() => setThemeModalOpen(false)}
           onSaved={(themeConfig) => {
             setResume((prev) => ({ ...prev, themeConfig }));
             setPdfVersion((v) => v + 1);
           }}
         />
+      )}
+
+      {loginModalOpen && (
+        <LoginModal googleEnabled={googleEnabled} onClose={() => setLoginModalOpen(false)} onSuccess={() => setLoginModalOpen(false)} />
       )}
 
       <div className="mx-auto max-w-[1300px] px-4 pt-6 sm:px-6">
@@ -190,9 +257,25 @@ export default function ResumeEditor({ resume: initialResume }) {
         <div className="hidden w-[340px] shrink-0 lg:block">
           <div className="sticky top-20">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Preview</p>
-            <ExactFirstPagePreview key={pdfVersion} resume={resume} />
+            {isLocal ? (
+              <div className="relative flex aspect-[210/297] items-center justify-center overflow-hidden rounded-lg border border-border bg-bg">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={getTemplate(resume.templateId).thumbnail}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover object-top opacity-25"
+                />
+                <span className="relative px-6 text-center text-xs font-semibold text-text-secondary">
+                  Sign in to see the exact PDF preview
+                </span>
+              </div>
+            ) : (
+              <ExactFirstPagePreview key={pdfVersion} resume={resume} />
+            )}
             <p className="mt-2 text-[11px] leading-snug text-text-secondary">
-              Shows the exact first page of your saved resume. Updates a moment after you stop typing.
+              {isLocal
+                ? "This exact preview needs your resume saved to an account — click Preview above to sign in."
+                : "Shows the exact first page of your saved resume. Updates a moment after you stop typing."}
             </p>
           </div>
         </div>

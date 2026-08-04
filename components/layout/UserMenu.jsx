@@ -1,9 +1,51 @@
 "use client";
 
+import { useState } from "react";
 import { signOut } from "next-auth/react";
-import { LogOut } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
+import LoginModal from "@/components/auth/LoginModal";
 
-export default function UserMenu({ user, avatarUrl, collapsed }) {
+export default function UserMenu({ user, avatarUrl, collapsed, googleEnabled }) {
+  const [loginOpen, setLoginOpen] = useState(false);
+
+  if (!user) {
+    return (
+      <>
+        {loginOpen && (
+          <LoginModal
+            googleEnabled={googleEnabled}
+            onClose={() => setLoginOpen(false)}
+            onSuccess={() => setLoginOpen(false)}
+          />
+        )}
+        {collapsed ? (
+          <div className="flex flex-col items-center gap-2 border-t border-border pt-4">
+            <button
+              type="button"
+              onClick={() => setLoginOpen(true)}
+              aria-label="Sign in"
+              title="Sign in"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
+            >
+              <LogIn size={15} />
+            </button>
+          </div>
+        ) : (
+          <div className="border-t border-border pt-4">
+            <button
+              type="button"
+              onClick={() => setLoginOpen(true)}
+              className="flex items-center gap-2 text-sm font-semibold text-primary"
+            >
+              <LogIn size={15} />
+              Sign in
+            </button>
+          </div>
+        )}
+      </>
+    );
+  }
+
   const src = avatarUrl || user.image;
   const avatar = (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary">
@@ -22,7 +64,7 @@ export default function UserMenu({ user, avatarUrl, collapsed }) {
         {avatar}
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => signOut({ callbackUrl: "/templates" })}
           aria-label="Sign out"
           title="Sign out"
           className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
@@ -40,7 +82,7 @@ export default function UserMenu({ user, avatarUrl, collapsed }) {
         <p className="truncate text-sm font-semibold text-text">{user.name}</p>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => signOut({ callbackUrl: "/templates" })}
           className="text-xs font-medium text-text-secondary hover:text-primary"
         >
           Sign out

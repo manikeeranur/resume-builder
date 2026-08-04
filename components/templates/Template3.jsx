@@ -35,7 +35,7 @@ function EntryTitle({ children }) {
 function BodyText({ children, className = "" }) {
   return (
     <div
-      className={`text-[14px] leading-[1.42] text-[#000000] ${className}`}
+      className={`text-[13px] leading-[1.42] text-[#000000] ${className}`}
       style={{ letterSpacing: "0.5px" }}
     >
       {children}
@@ -253,7 +253,7 @@ export default function Template3({ resume }) {
                           </li>
                         ))}
                       </ul> */}
-                            <BodyText className="text-gray-500">{exp.description}</BodyText>
+                            <BodyText>{exp.description}</BodyText>
 
                     </>
                   )}
@@ -281,7 +281,7 @@ export default function Template3({ resume }) {
                 <BodyText className="mt-1">{ed.institution}</BodyText>
               )}
               {dateRange(ed.startDate, ed.endDate) && (
-                <BodyText className="text-[12px] text-gray-500">
+                <BodyText className="!text-[12px]">
                   {dateRange(ed.startDate, ed.endDate)}
                 </BodyText>
               )}
