@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "restart": "kill -9 $(lsof -ti:3000) 2>/dev/null; next dev -p 3000",
+    "seed:plans": "node --env-file=.env scripts/seedPlans.mjs",
+    "admin:promote": "node --env-file=.env scripts/promoteAdmin.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium": "^133.0.0",
@@ -17,8 +20,10 @@
     "mongoose": "^9.8.1",
     "next": "14.2.35",
     "next-auth": "^4.24.11",
+    "nodemailer": "^7.0.13",
     "puppeteer": "^24.43.1",
     "puppeteer-core": "^24.43.1",
+    "razorpay": "^2.9.8",
     "react": "^18",
     "react-dom": "^18",
     "react-easy-crop": "^6.2.3",

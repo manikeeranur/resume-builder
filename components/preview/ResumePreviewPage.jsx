@@ -29,7 +29,7 @@ export default function ResumePreviewPage({ resume: initialResume }) {
     try {
       await downloadResumePdf(resume);
     } catch (err) {
-      alert("Failed to download PDF. Please try again.");
+      alert(err.message || "Failed to download PDF. Please try again.");
     } finally {
       setDownloading(false);
     }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, Receipt } from "lucide-react";
 import LoginModal from "@/components/auth/LoginModal";
 
 export default function UserMenu({ user, avatarUrl, collapsed, googleEnabled }) {
@@ -62,6 +63,14 @@ export default function UserMenu({ user, avatarUrl, collapsed, googleEnabled }) 
     return (
       <div className="flex flex-col items-center gap-2 border-t border-border pt-4">
         {avatar}
+        <Link
+          href="/account/subscription"
+          aria-label="Subscription"
+          title="Subscription"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
+        >
+          <Receipt size={15} />
+        </Link>
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/templates" })}
@@ -80,13 +89,19 @@ export default function UserMenu({ user, avatarUrl, collapsed, googleEnabled }) 
       {avatar}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-text">{user.name}</p>
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: "/templates" })}
-          className="text-xs font-medium text-text-secondary hover:text-primary"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-2">
+          <Link href="/account/subscription" className="text-xs font-medium text-text-secondary hover:text-primary">
+            Subscription
+          </Link>
+          <span className="text-text-secondary">·</span>
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: "/templates" })}
+            className="text-xs font-medium text-text-secondary hover:text-primary"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   );

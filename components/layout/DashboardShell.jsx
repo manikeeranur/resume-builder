@@ -3,20 +3,26 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, LayoutGrid, LayoutTemplate, CircleUserRound, FileText } from "lucide-react";
+import { Menu, X, LayoutGrid, LayoutTemplate, CircleUserRound, FileText, CreditCard, ShieldCheck } from "lucide-react";
 import UserMenu from "./UserMenu";
 import TopNavbar from "./TopNavbar";
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/resumes", label: "Resumes", icon: FileText },
   { href: "/templates", label: "Templates", icon: LayoutTemplate },
+  { href: "/pricing", label: "Pricing", icon: CreditCard },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
 ];
 
-function useActiveNav() {
+function navItemsFor(user) {
+  if (user?.role !== "admin") return BASE_NAV_ITEMS;
+  return [...BASE_NAV_ITEMS, { href: "/admin/payments", label: "Admin", icon: ShieldCheck }];
+}
+
+function useActiveNav(items) {
   const pathname = usePathname();
-  return NAV_ITEMS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.href || null;
+  return items.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.href || null;
 }
 
 function Logo({ collapsed }) {
@@ -30,10 +36,10 @@ function Logo({ collapsed }) {
   );
 }
 
-function NavLinks({ active, collapsed, onNavigate }) {
+function NavLinks({ items, active, collapsed, onNavigate }) {
   return (
     <nav className="flex-1 space-y-1.5">
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         const isActive = active === item.href;
         const Icon = item.icon;
         return (
@@ -62,7 +68,8 @@ function NavLinks({ active, collapsed, onNavigate }) {
 }
 
 export default function DashboardShell({ user, avatarUrl, googleEnabled, children }) {
-  const active = useActiveNav();
+  const items = navItemsFor(user);
+  const active = useActiveNav(items);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -96,7 +103,7 @@ export default function DashboardShell({ user, avatarUrl, googleEnabled, childre
                 <X size={18} />
               </button>
             </div>
-            <NavLinks active={active} onNavigate={() => setMobileOpen(false)} />
+            <NavLinks items={items} active={active} onNavigate={() => setMobileOpen(false)} />
             <UserMenu user={user} avatarUrl={avatarUrl} googleEnabled={googleEnabled} />
           </aside>
         </div>
@@ -107,7 +114,7 @@ export default function DashboardShell({ user, avatarUrl, googleEnabled, childre
         <div className="mb-8 px-1">
           <Logo collapsed />
         </div>
-        <NavLinks active={active} collapsed />
+        <NavLinks items={items} active={active} collapsed />
         <UserMenu user={user} avatarUrl={avatarUrl} collapsed googleEnabled={googleEnabled} />
       </aside>
 
