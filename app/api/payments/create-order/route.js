@@ -37,7 +37,15 @@ export async function POST(req) {
         notes: { userId: session.user.id, planId: plan._id.toString() },
       });
     } catch (err) {
-      console.error("Razorpay order creation failed:", err.message);
+      // The Razorpay SDK rejects API errors with a plain
+      // { statusCode, error: { description, code, ... } } object, not a
+      // real Error — so err.message is always undefined for those (auth
+      // failures, bad params, etc). Log the whole shape so it's actually
+      // diagnosable instead of printing "undefined".
+      console.error(
+        "Razorpay order creation failed:",
+        err?.error?.description || err?.message || JSON.stringify(err)
+      );
       return NextResponse.json({ error: "Could not start checkout — please try again" }, { status: 502 });
     }
 
