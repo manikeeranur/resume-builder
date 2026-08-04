@@ -33,7 +33,11 @@ export async function POST(req) {
       order = await createRazorpayOrder({
         amountInPaise,
         currency: plan.currency,
-        receipt: `plan_${plan.code}_${session.user.id}_${Date.now()}`,
+        // Razorpay caps `receipt` at 40 characters — plan code + a full
+        // Mongo ObjectId + a ms timestamp runs well past that, which is
+        // what was actually causing every order creation to fail. The full
+        // userId/planId are already in `notes` below for reconciliation.
+        receipt: `rcpt_${session.user.id.slice(-10)}_${Date.now().toString(36)}`.slice(0, 40),
         notes: { userId: session.user.id, planId: plan._id.toString() },
       });
     } catch (err) {
