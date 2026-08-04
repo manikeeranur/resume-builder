@@ -189,113 +189,115 @@ export default function Template3({ resume }) {
         </div>
       </div>
 
+      {/* Single flowing column set: content fills the left column top to
+          bottom first and only spills into the right column once the left
+          one is full, instead of two independently-positioned grid tracks.
+          break-inside-avoid on each entry stops a job/education/cert block
+          from being sliced in half at the column (or print page) boundary;
+          break-after-avoid keeps a heading glued to whatever follows it. */}
       <main
-        className={`p-[32px] ${
-          stacked
-            ? "grid grid-cols-1 gap-[34px]"
-            : "grid grid-cols-[1fr_0.96fr] gap-[34px]"
-        }`}
+        className={`p-[32px] ${stacked ? "" : "columns-2 gap-x-[34px]"}`}
       >
-        <section>
+        <div className="break-after-avoid">
           <SectionHeading>Work experience</SectionHeading>
+        </div>
 
-          <div className="space-y-[24px]">
-            {experiences.map((exp, index) => (
-              <article key={index}>
-                <EntryTitle>{exp.position}</EntryTitle>
-                <BodyText className="mt-1">
+        <div className="space-y-[24px]">
+          {experiences.map((exp, index) => (
+            <article key={index} className="break-inside-avoid">
+              <EntryTitle>{exp.position}</EntryTitle>
+              <BodyText className="mt-1">
+                {[
+                  exp.company,
+                  dateRange(exp.startDate, exp.endDate, exp.current),
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+              </BodyText>
+
+              {(exp.description || exp.project || exp.technology) && (
+                <div className="mt-2 space-y-[8px]">
+                  {exp.description && (
+                    <>
+                      {exp.project && <BodyText>Project : {exp.project}</BodyText>}
+                      {/* <ul className="list-disc pl-5 space-y-1 marker:text-gray-400">
+                        {splitBullets(exp.description).map((line, index) => (
+                          <li key={index}>
+                            <BodyText>{line}</BodyText>
+                          </li>
+                        ))}
+                      </ul> */}
+                            <BodyText className="text-gray-500">{exp.description}</BodyText>
+
+                    </>
+                  )}
+                  {!exp.description && exp.project && (
+                    <BodyText>{exp.project}</BodyText>
+                  )}
+                  {!exp.description && exp.technology && (
+                    <BodyText>{exp.technology}</BodyText>
+                  )}
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-[34px] break-after-avoid">
+          <SectionHeading>Education &amp; Learning</SectionHeading>
+        </div>
+
+        <div className="space-y-[22px]">
+          {education.map((ed, index) => (
+            <article key={`edu-${index}`} className="break-inside-avoid">
+              <EntryTitle>{ed.degree}</EntryTitle>
+              <BodyText className="mt-1">
+                {[ed.institution, dateRange(ed.startDate, ed.endDate)]
+                  .filter(Boolean)
+                  .join(", ")}
+              </BodyText>
+            </article>
+          ))}
+
+          {certifications.map((cert, index) => (
+            <article key={`cert-${index}`} className="break-inside-avoid">
+              <EntryTitle>{cert.name}</EntryTitle>
+              <BodyText className="mt-1">
+                {[cert.issuer, formatMonthYear(cert.date)]
+                  .filter(Boolean)
+                  .join(", ")}
+              </BodyText>
+            </article>
+          ))}
+        </div>
+
+        {(combinedSkills ||
+          languageNames ||
+          pi.dateOfBirth ||
+          pi.location) && (
+          <div className="mt-[28px] break-inside-avoid">
+            <SectionHeading>Skills</SectionHeading>
+
+            <div className="space-y-[14px]">
+              {combinedSkills && <BodyText>{combinedSkills}.</BodyText>}
+
+              {languageNames && (
+                <BodyText>Languages: {languageNames}.</BodyText>
+              )}
+
+              {(pi.location || pi.dateOfBirth) && (
+                <BodyText>
                   {[
-                    exp.company,
-                    dateRange(exp.startDate, exp.endDate, exp.current),
+                    pi.location,
+                    pi.dateOfBirth && formatFullDate(pi.dateOfBirth),
                   ]
                     .filter(Boolean)
-                    .join(", ")}
+                    .join(" · ")}
                 </BodyText>
-
-                {(exp.description || exp.project || exp.technology) && (
-                  <div className="mt-2 space-y-[8px]">
-                    {exp.description && (
-                      <>
-                        {exp.project && <BodyText>Project : {exp.project}</BodyText>}
-                        {/* <ul className="list-disc pl-5 space-y-1 marker:text-gray-400">
-                          {splitBullets(exp.description).map((line, index) => (
-                            <li key={index}>
-                              <BodyText>{line}</BodyText>
-                            </li>
-                          ))}
-                        </ul> */}
-                              <BodyText className="text-gray-500">{exp.description}</BodyText>
-
-                      </>
-                    )}
-                    {!exp.description && exp.project && (
-                      <BodyText>{exp.project}</BodyText>
-                    )}
-                    {!exp.description && exp.technology && (
-                      <BodyText>{exp.technology}</BodyText>
-                    )}
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <SectionHeading>Education &amp; Learning</SectionHeading>
-
-          <div className="space-y-[22px]">
-            {education.map((ed, index) => (
-              <article key={`edu-${index}`}>
-                <EntryTitle>{ed.degree}</EntryTitle>
-                <BodyText className="mt-1">
-                  {[ed.institution, dateRange(ed.startDate, ed.endDate)]
-                    .filter(Boolean)
-                    .join(", ")}
-                </BodyText>
-              </article>
-            ))}
-
-            {certifications.map((cert, index) => (
-              <article key={`cert-${index}`}>
-                <EntryTitle>{cert.name}</EntryTitle>
-                <BodyText className="mt-1">
-                  {[cert.issuer, formatMonthYear(cert.date)]
-                    .filter(Boolean)
-                    .join(", ")}
-                </BodyText>
-              </article>
-            ))}
-          </div>
-
-          {(combinedSkills ||
-            languageNames ||
-            pi.dateOfBirth ||
-            pi.location) && (
-            <div className="mt-[28px]">
-              <SectionHeading>Skills</SectionHeading>
-
-              <div className="space-y-[14px]">
-                {combinedSkills && <BodyText>{combinedSkills}.</BodyText>}
-
-                {languageNames && (
-                  <BodyText>Languages: {languageNames}.</BodyText>
-                )}
-
-                {(pi.location || pi.dateOfBirth) && (
-                  <BodyText>
-                    {[
-                      pi.location,
-                      pi.dateOfBirth && formatFullDate(pi.dateOfBirth),
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </BodyText>
-                )}
-              </div>
+              )}
             </div>
-          )}
-        </section>
+          </div>
+        )}
       </main>
     </div>
   );
