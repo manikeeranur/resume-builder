@@ -5,8 +5,9 @@ import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { LogIn, LogOut, Receipt } from "lucide-react";
 import LoginModal from "@/components/auth/LoginModal";
+import CrownBadge from "./CrownBadge";
 
-export default function UserMenu({ user, avatarUrl, collapsed, googleEnabled }) {
+export default function UserMenu({ user, avatarUrl, isPremium, collapsed, googleEnabled }) {
   const [loginOpen, setLoginOpen] = useState(false);
 
   if (!user) {
@@ -49,13 +50,16 @@ export default function UserMenu({ user, avatarUrl, collapsed, googleEnabled }) 
 
   const src = avatarUrl || user.image;
   const avatar = (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary">
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={user.name} className="h-full w-full object-cover" />
-      ) : (
-        (user.name || "?").charAt(0).toUpperCase()
-      )}
+    <span className="relative flex h-9 w-9 shrink-0">
+      <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary">
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt={user.name} className="h-full w-full object-cover" />
+        ) : (
+          (user.name || "?").charAt(0).toUpperCase()
+        )}
+      </span>
+      {isPremium && <CrownBadge />}
     </span>
   );
 

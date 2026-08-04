@@ -5,8 +5,9 @@ import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { CircleUserRound, LogIn, LogOut } from "lucide-react";
 import LoginModal from "@/components/auth/LoginModal";
+import CrownBadge from "./CrownBadge";
 
-export default function AvatarMenu({ user, avatarUrl, googleEnabled }) {
+export default function AvatarMenu({ user, avatarUrl, isPremium, googleEnabled }) {
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const containerRef = useRef(null);
@@ -65,17 +66,23 @@ export default function AvatarMenu({ user, avatarUrl, googleEnabled }) {
           initial
         )}
       </button>
+      {/* Sibling of the overflow-hidden button (not a child) so the badge
+          isn't clipped by the avatar's own rounded-full overflow. */}
+      {isPremium && <CrownBadge />}
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+10px)] z-30 w-72 overflow-hidden rounded-2xl border border-border bg-white shadow-card-lg">
           <div className="flex items-center gap-3 px-4 py-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-light text-base font-bold text-primary">
-              {src ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={src} alt={user?.name} className="h-full w-full object-cover" />
-              ) : (
-                initial
-              )}
+            <span className="relative flex h-11 w-11 shrink-0">
+              <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-primary-light text-base font-bold text-primary">
+                {src ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={src} alt={user?.name} className="h-full w-full object-cover" />
+                ) : (
+                  initial
+                )}
+              </span>
+              {isPremium && <CrownBadge />}
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-text">{user?.name}</p>

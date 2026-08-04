@@ -67,7 +67,7 @@ function NavLinks({ items, active, collapsed, onNavigate }) {
   );
 }
 
-export default function DashboardShell({ user, avatarUrl, googleEnabled, children }) {
+export default function DashboardShell({ user, avatarUrl, isPremium, googleEnabled, children }) {
   const items = navItemsFor(user);
   const active = useActiveNav(items);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -104,7 +104,7 @@ export default function DashboardShell({ user, avatarUrl, googleEnabled, childre
               </button>
             </div>
             <NavLinks items={items} active={active} onNavigate={() => setMobileOpen(false)} />
-            <UserMenu user={user} avatarUrl={avatarUrl} googleEnabled={googleEnabled} />
+            <UserMenu user={user} avatarUrl={avatarUrl} isPremium={isPremium} googleEnabled={googleEnabled} />
           </aside>
         </div>
       )}
@@ -115,11 +115,11 @@ export default function DashboardShell({ user, avatarUrl, googleEnabled, childre
           <Logo collapsed />
         </div>
         <NavLinks items={items} active={active} collapsed />
-        <UserMenu user={user} avatarUrl={avatarUrl} collapsed googleEnabled={googleEnabled} />
+        <UserMenu user={user} avatarUrl={avatarUrl} isPremium={isPremium} collapsed googleEnabled={googleEnabled} />
       </aside>
 
       <main className="min-w-0 md:ml-20">
-        <TopNavbar user={user} avatarUrl={avatarUrl} googleEnabled={googleEnabled} />
+        <TopNavbar user={user} avatarUrl={avatarUrl} isPremium={isPremium} googleEnabled={googleEnabled} />
         {children}
       </main>
     </div>
