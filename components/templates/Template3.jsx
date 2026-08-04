@@ -271,28 +271,30 @@ export default function Template3({ resume }) {
           ))}
         </div>
 
-        {(combinedSkills ||
-          languageNames ||
-          pi.dateOfBirth ||
-          pi.location) && (
+        {combinedSkills && (
           <div className="mt-[28px] break-inside-avoid">
             <SectionHeading>Skills</SectionHeading>
 
             <div className="space-y-[14px]">
-              {combinedSkills && <BodyText>{combinedSkills}.</BodyText>}
+              <BodyText>{combinedSkills}.</BodyText>
+            </div>
+          </div>
+        )}
+
+        {(pi.location || languageNames || pi.dateOfBirth) && (
+          <div className="mt-[28px] break-inside-avoid">
+            <SectionHeading>Personal Details</SectionHeading>
+
+            <div className="space-y-[14px]">
+              {pi.location && <BodyText>Location: {pi.location}.</BodyText>}
 
               {languageNames && (
                 <BodyText>Languages: {languageNames}.</BodyText>
               )}
 
-              {(pi.location || pi.dateOfBirth) && (
+              {pi.dateOfBirth && (
                 <BodyText>
-                  {[
-                    pi.location,
-                    pi.dateOfBirth && formatFullDate(pi.dateOfBirth),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  Date of Birth: {formatFullDate(pi.dateOfBirth)}.
                 </BodyText>
               )}
             </div>
