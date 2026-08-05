@@ -1,3 +1,4 @@
+import { Crown } from "lucide-react";
 import AdminSubscriptionsTable from "@/components/admin/AdminSubscriptionsTable";
 import PlanManagerForm from "@/components/admin/PlanManagerForm";
 
@@ -11,10 +12,17 @@ export default function AdminSubscriptionsPage({ searchParams }) {
       </div>
 
       <div>
-        <h2 className="mb-1 text-lg font-bold text-text">Plan management</h2>
-        <p className="mb-6 text-sm text-text-secondary">
-          Changes apply to future purchases only — past payments keep the amount they were actually charged.
-        </p>
+        <div className="mb-6 flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-light text-primary">
+            <Crown size={17} />
+          </span>
+          <div>
+            <h2 className="text-lg font-bold text-text">Plan management</h2>
+            <p className="text-sm text-text-secondary">
+              Changes apply to future purchases only — past payments keep the amount they were actually charged.
+            </p>
+          </div>
+        </div>
         <PlanManagerForm />
       </div>
     </div>

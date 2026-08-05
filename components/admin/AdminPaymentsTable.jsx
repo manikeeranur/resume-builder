@@ -52,7 +52,7 @@ export default function AdminPaymentsTable() {
       <div className="card overflow-x-auto">
         <table className="w-full min-w-[1100px] text-left text-sm">
           <thead>
-            <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
+            <tr className="sticky top-0 border-b border-border bg-white text-xs uppercase tracking-wide text-text-secondary">
               <th className="px-4 py-3 font-semibold">Payment</th>
               <th className="px-4 py-3 font-semibold">User</th>
               <th className="px-4 py-3 font-semibold">Plan</th>
@@ -72,7 +72,7 @@ export default function AdminPaymentsTable() {
               </tr>
             )}
             {payments.map((p) => (
-              <tr key={p._id} className="border-b border-border align-top last:border-0">
+              <tr key={p._id} className="border-b border-border align-top transition-colors last:border-0 hover:bg-bg">
                 <td className="px-4 py-3">
                   <p className="font-mono text-xs text-text">{p._id}</p>
                   <p className="mt-0.5 font-mono text-[11px] text-text-secondary">order: {p.razorpayOrderId}</p>

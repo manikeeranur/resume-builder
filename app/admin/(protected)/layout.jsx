@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import AdminNav from "@/components/admin/AdminNav";
+import AdminSidebar from "@/components/admin/AdminSidebar";
 
 // role is populated on every request from the live User document (see
 // lib/auth.js jwt callback) — a role change by another admin takes effect
@@ -17,8 +17,10 @@ export default async function AdminLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-bg">
-      <AdminNav />
-      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">{children}</main>
+      <AdminSidebar user={session.user} />
+      <main className="md:ml-64">
+        <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">{children}</div>
+      </main>
     </div>
   );
 }

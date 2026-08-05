@@ -8,8 +8,10 @@ import SectionForm from "@/components/editor/SectionForm";
 import { SECTION_LIST, defaultThemeConfig } from "@/lib/resumeDefaults";
 import { SECTION_ICONS } from "@/lib/sectionIcons";
 import { profileCompleteness } from "@/lib/profileCompleteness";
+import CrownBadge from "@/components/layout/CrownBadge";
+import AvatarImage from "@/components/ui/AvatarImage";
 
-export default function ProfileEditor({ profile: initialProfile }) {
+export default function ProfileEditor({ profile: initialProfile, isPremium }) {
   const [sections, setSections] = useState(initialProfile.sections);
   const [activeSection, setActiveSection] = useState("personalInfo");
   const [status, setStatus] = useState("saved");
@@ -75,13 +77,14 @@ export default function ProfileEditor({ profile: initialProfile }) {
       <div className="mx-auto max-w-[1300px] px-4 pt-6 sm:px-6">
         <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-[#8a7cf0] p-6 text-white shadow-card-lg sm:p-8">
           <div className="flex flex-col items-center gap-5 sm:flex-row">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white/30 bg-white/15 text-2xl font-bold sm:h-24 sm:w-24">
-              {pi.photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={pi.photo} alt={pi.fullName} className="h-full w-full object-cover" />
-              ) : (
-                initials || "?"
-              )}
+            <div className="relative h-20 w-20 shrink-0 sm:h-24 sm:w-24">
+              <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border-4 border-white/30 bg-white/15 text-2xl font-bold">
+                {initials || "?"}
+                <AvatarImage src={pi.photo} alt={pi.fullName} className="absolute inset-0 h-full w-full object-cover" />
+              </div>
+              {/* Sibling of the overflow-hidden circle, not a child, so the
+                  badge isn't clipped by its own rounded overflow. */}
+              {isPremium && <CrownBadge size="lg" />}
             </div>
             <div className="min-w-0 flex-1 text-center sm:text-left">
               <p className="truncate text-xl font-bold sm:text-2xl">{pi.fullName || "Add your name"}</p>

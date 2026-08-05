@@ -3,6 +3,10 @@ import dbConnect from "@/lib/db";
 import Subscription from "@/lib/models/Subscription";
 import User from "@/lib/models/User";
 import { requireAdmin } from "@/lib/requireAdmin";
+// Registers the Plan schema with Mongoose — required by populate("planId")
+// below even though Plan isn't referenced directly. See the same note in
+// app/api/admin/users/route.js.
+import "@/lib/models/Plan";
 
 export async function GET(req) {
   const session = await requireAdmin();

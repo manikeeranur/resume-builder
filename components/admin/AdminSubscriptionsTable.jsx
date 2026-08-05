@@ -212,7 +212,7 @@ export default function AdminSubscriptionsTable({ initialUser = "" }) {
       <div className="card overflow-x-auto">
         <table className="w-full min-w-[1100px] text-left text-sm">
           <thead>
-            <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
+            <tr className="sticky top-0 border-b border-border bg-white text-xs uppercase tracking-wide text-text-secondary">
               <th className="px-4 py-3 font-semibold">Subscription</th>
               <th className="px-4 py-3 font-semibold">User</th>
               <th className="px-4 py-3 font-semibold">Plan</th>
@@ -233,7 +233,7 @@ export default function AdminSubscriptionsTable({ initialUser = "" }) {
               </tr>
             )}
             {subscriptions.map((s) => (
-              <tr key={s._id} className="border-b border-border align-top last:border-0">
+              <tr key={s._id} className="border-b border-border align-top transition-colors last:border-0 hover:bg-bg">
                 <td className="px-4 py-3 font-mono text-xs text-text">{s._id}</td>
                 <td className="px-4 py-3">
                   <p className="font-medium text-text">{s.userId?.name || "—"}</p>

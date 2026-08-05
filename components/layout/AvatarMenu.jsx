@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react";
 import { CircleUserRound, LogIn, LogOut } from "lucide-react";
 import LoginModal from "@/components/auth/LoginModal";
 import CrownBadge from "./CrownBadge";
+import AvatarImage from "@/components/ui/AvatarImage";
 
 export default function AvatarMenu({ user, avatarUrl, isPremium, googleEnabled }) {
   const [open, setOpen] = useState(false);
@@ -57,14 +58,10 @@ export default function AvatarMenu({ user, avatarUrl, isPremium, googleEnabled }
         onClick={() => setOpen((v) => !v)}
         aria-label="Account menu"
         aria-expanded={open}
-        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary ring-2 ring-primary/30 ring-offset-2 transition-shadow hover:ring-primary/50"
+        className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary ring-2 ring-primary/30 ring-offset-2 transition-shadow hover:ring-primary/50"
       >
-        {src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={user?.name} className="h-full w-full object-cover" />
-        ) : (
-          initial
-        )}
+        {initial}
+        <AvatarImage src={src} alt={user?.name} className="absolute inset-0 h-full w-full object-cover" />
       </button>
       {/* Sibling of the overflow-hidden button (not a child) so the badge
           isn't clipped by the avatar's own rounded-full overflow. */}
@@ -74,15 +71,11 @@ export default function AvatarMenu({ user, avatarUrl, isPremium, googleEnabled }
         <div className="absolute right-0 top-[calc(100%+10px)] z-30 w-72 overflow-hidden rounded-2xl border border-border bg-white shadow-card-lg">
           <div className="flex items-center gap-3 px-4 py-4">
             <span className="relative flex h-11 w-11 shrink-0">
-              <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-primary-light text-base font-bold text-primary">
-                {src ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={src} alt={user?.name} className="h-full w-full object-cover" />
-                ) : (
-                  initial
-                )}
+              <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-primary-light text-base font-bold text-primary ring-2 ring-primary/30 ring-offset-2">
+                {initial}
+                <AvatarImage src={src} alt={user?.name} className="absolute inset-0 h-full w-full object-cover" />
               </span>
-              {isPremium && <CrownBadge />}
+              {isPremium && <CrownBadge size="md" />}
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-text">{user?.name}</p>
