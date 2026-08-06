@@ -19,6 +19,10 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim();
   const role = searchParams.get("role");
+  const provider = searchParams.get("provider");
+  const planId = searchParams.get("planId");
+  const joinedFrom = searchParams.get("joinedFrom");
+  const joinedTo = searchParams.get("joinedTo");
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const limit = Math.min(100, Number(searchParams.get("limit")) || 25);
 
@@ -27,10 +31,32 @@ export async function GET(req) {
     filter.$or = [{ name: new RegExp(q, "i") }, { email: new RegExp(q, "i") }];
   }
   if (role) filter.role = role;
+  if (provider) filter.provider = provider;
+  if (joinedFrom || joinedTo) {
+    filter.createdAt = {};
+    if (joinedFrom) filter.createdAt.$gte = new Date(joinedFrom);
+    // End-of-day so the "to" date itself is included, not just up to midnight.
+    if (joinedTo) filter.createdAt.$lte = new Date(`${joinedTo}T23:59:59.999Z`);
+  }
+
+  // Plan isn't a field on User — it's derived from whichever active
+  // Subscription (if any) points at this user, same as the rest of this
+  // route. Resolve it to a set of userIds first, same join pattern already
+  // used by the "user" search filter on /api/admin/subscriptions.
+  if (planId) {
+    if (planId === "__free__") {
+      const paidSubs = await Subscription.find({ status: "ACTIVE" }).populate("planId", "billingType");
+      const paidUserIds = paidSubs.filter((s) => s.planId?.billingType !== "FREE").map((s) => s.userId);
+      filter._id = { $nin: paidUserIds };
+    } else {
+      const matching = await Subscription.find({ status: "ACTIVE", planId }).select("userId");
+      filter._id = { $in: matching.map((s) => s.userId) };
+    }
+  }
 
   const [users, total, grandTotal, adminCount] = await Promise.all([
     User.find(filter)
-      .select("name email phone image provider role createdAt")
+      .select("name email phone image provider role isBlocked createdAt")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit),
@@ -53,28 +79,33 @@ export async function GET(req) {
   ]);
 
   const resumeCountByUser = new Map(resumeCounts.map((r) => [r._id.toString(), r.count]));
-  const planByUser = new Map(subscriptions.map((s) => [s.userId.toString(), s.planId]));
+  const subscriptionByUser = new Map(subscriptions.map((s) => [s.userId.toString(), s]));
   const photoByUser = new Map(profiles.map((p) => [p.userId.toString(), p.sections?.personalInfo?.photo || null]));
   const profilePhoneByUser = new Map(profiles.map((p) => [p.userId.toString(), p.sections?.personalInfo?.phone || null]));
 
-  const result = users.map((u) => ({
-    _id: u._id,
-    name: u.name,
-    email: u.email,
-    // User.phone only ever gets set by a future Razorpay-checkout-prefill
-    // flow (nothing currently writes to it) — the phone number a user
-    // actually enters lives on their Profile (used for their resume's
-    // contact info), so that's the one worth showing here.
-    phone: profilePhoneByUser.get(u._id.toString()) || u.phone || null,
-    // The app-wide precedence (see app/(app)/layout.jsx) is the user's own
-    // uploaded profile photo first, falling back to their OAuth avatar.
-    photo: photoByUser.get(u._id.toString()) || u.image || null,
-    provider: u.provider,
-    role: u.role,
-    createdAt: u.createdAt,
-    resumeCount: resumeCountByUser.get(u._id.toString()) || 0,
-    plan: planByUser.get(u._id.toString()) || null,
-  }));
+  const result = users.map((u) => {
+    const subscription = subscriptionByUser.get(u._id.toString()) || null;
+    return {
+      _id: u._id,
+      name: u.name,
+      email: u.email,
+      // User.phone only ever gets set by a future Razorpay-checkout-prefill
+      // flow (nothing currently writes to it) — the phone number a user
+      // actually enters lives on their Profile (used for their resume's
+      // contact info), so that's the one worth showing here.
+      phone: profilePhoneByUser.get(u._id.toString()) || u.phone || null,
+      // The app-wide precedence (see app/(app)/layout.jsx) is the user's own
+      // uploaded profile photo first, falling back to their OAuth avatar.
+      photo: photoByUser.get(u._id.toString()) || u.image || null,
+      provider: u.provider,
+      role: u.role,
+      isBlocked: u.isBlocked,
+      createdAt: u.createdAt,
+      resumeCount: resumeCountByUser.get(u._id.toString()) || 0,
+      plan: subscription?.planId || null,
+      subscriptionId: subscription?._id || null,
+    };
+  });
 
   return NextResponse.json({ users: result, total, grandTotal, adminCount, page, limit });
 }
