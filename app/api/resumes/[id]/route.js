@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOwnedResume } from "@/lib/getOwnedResume";
-import { getTemplate } from "@/lib/templates";
+import { getTemplateMeta } from "@/lib/templatesServer";
 import { checkFeatureAccess } from "@/lib/subscription/check-feature-access";
 
 export async function GET(req, { params }) {
@@ -29,7 +29,14 @@ export async function PATCH(req, { params }) {
     const body = await req.json().catch(() => ({}));
 
     if (body.templateId && body.templateId !== resume.templateId) {
-      const template = getTemplate(body.templateId);
+      // getTemplateMeta (unlike the static-only getTemplate) also resolves
+      // admin-created templates — using the static-only lookup here would
+      // silently fall back to template-1 (never premium) for a dynamic
+      // template id, bypassing the premium gate below entirely.
+      const template = await getTemplateMeta(body.templateId);
+      if (!template) {
+        return NextResponse.json({ error: "That template isn't available yet" }, { status: 400 });
+      }
       if (template.premium) {
         const access = await checkFeatureAccess(session.user.id);
         if (!access.canUsePremiumTemplate) {

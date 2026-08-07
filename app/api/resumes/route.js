@@ -6,7 +6,7 @@ import dbConnect from "@/lib/db";
 import Resume from "@/lib/models/Resume";
 import Profile from "@/lib/models/Profile";
 import { emptyResumeSections, defaultThemeConfig } from "@/lib/resumeDefaults";
-import { getTemplate } from "@/lib/templates";
+import { getTemplateMeta } from "@/lib/templatesServer";
 import { checkResumeLimit } from "@/lib/subscription/check-resume-limit";
 import { checkFeatureAccess } from "@/lib/subscription/check-feature-access";
 
@@ -25,8 +25,11 @@ export async function POST(req) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const template = getTemplate(body.templateId);
-    if (!template.available) {
+    // getTemplateMeta (unlike the static-only getTemplate) also resolves
+    // admin-created templates, and returns null instead of silently falling
+    // back to template-1 when the id doesn't match anything real.
+    const template = await getTemplateMeta(body.templateId);
+    if (!template || !template.available) {
       return NextResponse.json({ error: "That template isn't available yet" }, { status: 400 });
     }
 

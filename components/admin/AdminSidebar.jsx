@@ -4,12 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Menu, X, ShieldCheck, CreditCard, Repeat, Users, ArrowLeft, LogOut } from "lucide-react";
+import { Menu, X, ShieldCheck, CreditCard, Repeat, Users, LayoutTemplate, ArrowLeft, LogOut } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
   { href: "/admin/subscriptions", label: "Subscriptions & Plans", icon: Repeat },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/templates", label: "Templates", icon: LayoutTemplate },
 ];
 
 function Logo() {

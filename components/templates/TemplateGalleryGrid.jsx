@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { TEMPLATE_LIST } from "@/lib/templates";
@@ -14,6 +14,17 @@ export default function TemplateGalleryGrid() {
   const { status } = useSession();
   const [creatingId, setCreatingId] = useState(null);
   const [error, setError] = useState(null);
+  // Starts with the static 6 built-ins (instant, no flash of empty state),
+  // then swaps in the merged catalog — built-ins plus every active
+  // admin-created template — once GET /api/templates resolves.
+  const [templates, setTemplates] = useState(TEMPLATE_LIST);
+
+  useEffect(() => {
+    fetch("/api/templates")
+      .then((r) => r.json())
+      .then((data) => Array.isArray(data) && setTemplates(data))
+      .catch(() => {});
+  }, []);
 
   const handleSelect = async (template) => {
     // status === "loading" is the brief window before the client has
@@ -79,7 +90,7 @@ export default function TemplateGalleryGrid() {
         </p>
       )}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {TEMPLATE_LIST.map((t) => (
+        {templates.map((t) => (
           <button
             key={t.id}
             type="button"

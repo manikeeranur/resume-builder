@@ -33,6 +33,10 @@ export default function TemplateThumb({ templateId, thumbnail }) {
     );
   }
 
-  const fallback = FALLBACK_SAMPLES[templateId] || sampleResume;
+  // FALLBACK_SAMPLES only covers the 6 built-ins; an admin-created template
+  // id isn't in that map, so fall back to the generic sample content but
+  // keep its *own* templateId — reusing sampleResume's would render
+  // Template1 (its hardcoded templateId) instead of this dynamic template.
+  const fallback = FALLBACK_SAMPLES[templateId] || { ...sampleResume, templateId };
   return <ScaledThumb resume={fallback} />;
 }
