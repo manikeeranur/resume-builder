@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import Subscription from "@/lib/models/Subscription";
 import User from "@/lib/models/User";
 import Plan from "@/lib/models/Plan";
+import Profile from "@/lib/models/Profile";
 import AdminAuditLog from "@/lib/models/AdminAuditLog";
 import { requireAdmin } from "@/lib/requireAdmin";
 
@@ -28,17 +29,50 @@ export async function GET(req) {
   if (planId) filter.planId = planId;
   if (status) filter.status = status;
 
-  const [subscriptions, total] = await Promise.all([
+  const now = new Date();
+  const sevenDaysOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  // counts/expiringSoon are global (unfiltered) — an at-a-glance summary of
+  // the whole table, same idea as AdminUsersTable's grandTotal/adminCount,
+  // shown alongside `total` (which respects the current filters and drives
+  // pagination below).
+  const [subscriptions, total, active, expiringSoon, cancelled, grandTotal] = await Promise.all([
     Subscription.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate("userId", "name email")
+      .populate("userId", "name email image")
       .populate("planId", "name code billingType"),
     Subscription.countDocuments(filter),
+    Subscription.countDocuments({ status: "ACTIVE" }),
+    Subscription.countDocuments({ status: "ACTIVE", expiryDate: { $gte: now, $lte: sevenDaysOut } }),
+    Subscription.countDocuments({ status: "CANCELLED" }),
+    Subscription.countDocuments(),
   ]);
 
-  return NextResponse.json({ subscriptions, total, page, limit });
+  // Same precedence as /api/admin/users and the app-wide layout: a user's
+  // own uploaded profile photo (their actual resume photo) first, OAuth
+  // avatar only as a fallback — not just the OAuth image, so this matches
+  // exactly what the user actually looks like elsewhere in the product.
+  const userIds = subscriptions.map((s) => s.userId?._id).filter(Boolean);
+  const profiles = await Profile.find({ userId: { $in: userIds } }).select("userId sections.personalInfo.photo");
+  const photoByUser = new Map(profiles.map((p) => [p.userId.toString(), p.sections?.personalInfo?.photo || null]));
+
+  const withPhotos = subscriptions.map((s) => {
+    const obj = s.toObject();
+    if (obj.userId) {
+      obj.userId.photo = photoByUser.get(obj.userId._id.toString()) || obj.userId.image || null;
+    }
+    return obj;
+  });
+
+  return NextResponse.json({
+    subscriptions: withPhotos,
+    total,
+    page,
+    limit,
+    counts: { grandTotal, active, expiringSoon, cancelled },
+  });
 }
 
 // Assigns a plan to a user who has no Subscription document at all — i.e.

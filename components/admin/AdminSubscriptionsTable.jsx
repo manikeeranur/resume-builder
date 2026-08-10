@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { X } from "lucide-react";
+import { X, Repeat, BadgeCheck, Clock, Ban, CalendarPlus, ArrowLeftRight, RotateCcw, History } from "lucide-react";
+import StatCard from "@/components/dashboard/StatCard";
+import AvatarImage from "@/components/ui/AvatarImage";
+import CustomTable from "@/components/common/CustomTable";
+import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
 
 function formatDate(date) {
-  return date ? new Date(date).toLocaleDateString("en-IN") : "—";
+  return date ? new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
 }
 function remainingDays(expiryDate) {
   const ms = new Date(expiryDate).getTime() - Date.now();
@@ -17,6 +21,31 @@ const STATUS_STYLES = {
   EXPIRED: "bg-bg text-text-secondary",
   CANCELLED: "bg-red-50 text-red-600",
 };
+
+function Avatar({ name, photo }) {
+  const initial = (name || "?").charAt(0).toUpperCase();
+  return (
+    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary ring-2 ring-primary/20 ring-offset-2">
+      {initial}
+      <AvatarImage src={photo} alt={name} className="absolute inset-0 h-full w-full object-cover" />
+    </span>
+  );
+}
+
+// Days-left reads as plain text until it's actually close, then escalates to
+// amber/red — a subscription with 45 days left doesn't need the same visual
+// weight as one expiring in 2, and burying that signal in a table full of
+// evenly-styled cells is exactly what made this hard to scan before.
+function DaysLeft({ subscription }) {
+  if (subscription.status !== "ACTIVE") return <span className="text-text-secondary">—</span>;
+  const days = remainingDays(subscription.expiryDate);
+  const tone = days <= 3 ? "text-red-600" : days <= 14 ? "text-amber-600" : "text-text";
+  return (
+    <span className={`font-semibold ${tone}`}>
+      {days} day{days === 1 ? "" : "s"}
+    </span>
+  );
+}
 
 function ActionModal({ subscription, action, plans, onClose, onDone }) {
   const [days, setDays] = useState(30);
@@ -57,7 +86,10 @@ function ActionModal({ subscription, action, plans, onClose, onDone }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="card w-full max-w-sm p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-bold text-text">{title}</h3>
+          <div>
+            <h3 className="text-base font-bold text-text">{title}</h3>
+            <p className="mt-0.5 text-xs text-text-secondary">{subscription.userId?.name || subscription.userId?.email}</p>
+          </div>
           <button type="button" onClick={onClose} className="text-text-secondary hover:text-text">
             <X size={18} />
           </button>
@@ -146,8 +178,12 @@ export default function AdminSubscriptionsTable({ initialUser = "" }) {
   const [filters, setFilters] = useState({ user: initialUser, planId: "", status: "" });
   const [subscriptions, setSubscriptions] = useState([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
+  const [counts, setCounts] = useState({ grandTotal: 0, active: 0, expiringSoon: 0, cancelled: 0 });
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // { subscription, action }
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
 
   useEffect(() => {
     fetch("/api/admin/plans")
@@ -156,26 +192,104 @@ export default function AdminSubscriptionsTable({ initialUser = "" }) {
       .catch(() => {});
   }, []);
 
+  // Any filter change resets back to page 1 — staying on page 5 of a
+  // now-different, shorter result set would just show an empty page.
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
   const load = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => v && params.set(k, v));
+    params.set("page", String(page));
+    params.set("limit", String(perPage));
     fetch(`/api/admin/subscriptions?${params.toString()}`)
       .then((r) => r.json())
       .then((data) => {
         setSubscriptions(data.subscriptions || []);
         setTotal(data.total || 0);
+        if (data.counts) setCounts(data.counts);
       })
       .finally(() => setLoading(false));
-  }, [filters]);
+  }, [filters, page, perPage]);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
   }, [load]);
 
+  const columns = [
+    {
+      key: "user",
+      title: "User",
+      render: (s) => (
+        <div className="flex items-center gap-3">
+          <Avatar name={s.userId?.name} photo={s.userId?.photo} />
+          <div className="min-w-0">
+            <p className="truncate font-medium text-text">{s.userId?.name || "—"}</p>
+            <p className="truncate text-xs text-text-secondary">{s.userId?.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "plan",
+      title: "Plan",
+      render: (s) => <p className="font-medium text-text">{s.planId?.name || "—"}</p>,
+    },
+    {
+      key: "period",
+      title: "Period",
+      render: (s) => (
+        <div className="text-text-secondary">
+          <p>{formatDate(s.startDate)}</p>
+          <p className="text-xs">to {formatDate(s.expiryDate)}</p>
+        </div>
+      ),
+    },
+    {
+      key: "daysLeft",
+      title: "Days left",
+      render: (s) => <DaysLeft subscription={s} />,
+    },
+    {
+      key: "status",
+      title: "Status",
+      render: (s) => (
+        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[s.status] || ""}`}>{s.status}</span>
+      ),
+    },
+    {
+      key: "actions",
+      title: "Actions",
+      render: (s) => {
+        const openModal = (action) => setModal({ subscription: s, action });
+        return (
+          <CustomThreeDotMenu
+            actions={[
+              { label: "Extend", icon: <CalendarPlus size={14} />, onClick: () => openModal("extend") },
+              { label: "Change plan", icon: <ArrowLeftRight size={14} />, onClick: () => openModal("changePlan") },
+              s.status === "CANCELLED"
+                ? { label: "Reactivate", icon: <RotateCcw size={14} />, onClick: () => openModal("reactivate") }
+                : { label: "Cancel", icon: <Ban size={14} />, onClick: () => openModal("cancel"), destructive: true },
+              { label: "Payment history", icon: <History size={14} />, onClick: () => openModal("history"), separatorBefore: true },
+            ]}
+          />
+        );
+      },
+    },
+  ];
+
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard icon={Repeat} value={counts.grandTotal} label="Total Subscriptions" tint={{ bg: "var(--primary-light)", fg: "var(--primary)" }} />
+        <StatCard icon={BadgeCheck} value={counts.active} label="Active" tint={{ bg: "#dcfce7", fg: "#16a34a" }} />
+        <StatCard icon={Clock} value={counts.expiringSoon} label="Expiring within 7 days" tint={{ bg: "#fef3c7", fg: "#b45309" }} />
+        <StatCard icon={Ban} value={counts.cancelled} label="Cancelled" tint={{ bg: "#fee2e2", fg: "#dc2626" }} />
+      </div>
+
       <div className="card grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
         <input
           className="input-field"
@@ -209,75 +323,22 @@ export default function AdminSubscriptionsTable({ initialUser = "" }) {
         </select>
       </div>
 
-      <div className="card overflow-x-auto">
-        <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead>
-            <tr className="sticky top-0 border-b border-border bg-white text-xs uppercase tracking-wide text-text-secondary">
-              <th className="px-4 py-3 font-semibold">Subscription</th>
-              <th className="px-4 py-3 font-semibold">User</th>
-              <th className="px-4 py-3 font-semibold">Plan</th>
-              <th className="px-4 py-3 font-semibold">Start</th>
-              <th className="px-4 py-3 font-semibold">Expiry</th>
-              <th className="px-4 py-3 font-semibold">Days left</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Payment ref</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && subscriptions.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-text-secondary">
-                  No subscriptions match these filters.
-                </td>
-              </tr>
-            )}
-            {subscriptions.map((s) => (
-              <tr key={s._id} className="border-b border-border align-top transition-colors last:border-0 hover:bg-bg">
-                <td className="px-4 py-3 font-mono text-xs text-text">{s._id}</td>
-                <td className="px-4 py-3">
-                  <p className="font-medium text-text">{s.userId?.name || "—"}</p>
-                  <p className="text-xs text-text-secondary">{s.userId?.email}</p>
-                </td>
-                <td className="px-4 py-3 text-text">{s.planId?.name || "—"}</td>
-                <td className="px-4 py-3 text-text-secondary">{formatDate(s.startDate)}</td>
-                <td className="px-4 py-3 text-text-secondary">{formatDate(s.expiryDate)}</td>
-                <td className="px-4 py-3 text-text">{s.status === "ACTIVE" ? remainingDays(s.expiryDate) : "—"}</td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[s.status] || ""}`}>
-                    {s.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-mono text-[11px] text-text-secondary">{s.razorpayPaymentId || "—"}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                    <button type="button" className="text-primary hover:underline" onClick={() => setModal({ subscription: s, action: "extend" })}>
-                      Extend
-                    </button>
-                    <button type="button" className="text-primary hover:underline" onClick={() => setModal({ subscription: s, action: "changePlan" })}>
-                      Change plan
-                    </button>
-                    {s.status === "CANCELLED" ? (
-                      <button type="button" className="text-success hover:underline" onClick={() => setModal({ subscription: s, action: "reactivate" })}>
-                        Reactivate
-                      </button>
-                    ) : (
-                      <button type="button" className="text-red-600 hover:underline" onClick={() => setModal({ subscription: s, action: "cancel" })}>
-                        Cancel
-                      </button>
-                    )}
-                    <button type="button" className="text-text-secondary hover:underline" onClick={() => setModal({ subscription: s, action: "history" })}>
-                      History
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CustomTable
+        columns={columns}
+        data={subscriptions}
+        loading={loading}
+        emptyMessage="No subscriptions match these filters."
+        rowKey="_id"
+        perPageOptions={[10, 25, 50, 100]}
+        paginationState={{ page, perPage, totalPages }}
+        onPageChange={setPage}
+        onPerPageChange={(next) => {
+          setPerPage(next);
+          setPage(1);
+        }}
+      />
 
-      <p className="text-xs text-text-secondary">{total} subscription(s)</p>
+      <p className="text-xs text-text-secondary">{total} matching filter(s)</p>
 
       {modal && (
         <ActionModal

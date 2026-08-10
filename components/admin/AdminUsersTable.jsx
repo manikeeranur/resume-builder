@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
   ShieldOff,
   Users as UsersIcon,
   ShieldHalf,
   Phone,
-  MoreVertical,
   UserCog,
   Ban,
   CheckCircle2,
@@ -19,6 +19,8 @@ import { useSession } from "next-auth/react";
 import StatCard from "@/components/dashboard/StatCard";
 import CrownBadge from "@/components/layout/CrownBadge";
 import AvatarImage from "@/components/ui/AvatarImage";
+import CustomTable from "@/components/common/CustomTable";
+import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
 import ChangePlanModal from "@/components/admin/ChangePlanModal";
 import DeleteUserModal from "@/components/admin/DeleteUserModal";
 
@@ -40,103 +42,22 @@ function Avatar({ name, photo, isPremium }) {
   );
 }
 
-// Groups every per-row admin action behind one kebab button instead of a
-// row of always-visible buttons — the row now needs 5 actions (manage,
-// promote/demote, block/unblock, change plan, delete), which stopped
-// fitting inline once "delete" and "change plan" joined the original
-// promote/demote button.
-function RowMenu({ user, isSelf, acting, onToggleRole, onToggleBlock, onChangePlan, onDelete }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  const act = (fn) => {
-    setOpen(false);
-    fn(user);
-  };
-
-  return (
-    <div className="relative inline-block text-left" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label="User actions"
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-text"
-      >
-        <MoreVertical size={16} />
-      </button>
-      {open && (
-        <div className="absolute right-0 z-10 mt-1 w-52 overflow-hidden rounded-xl border border-border bg-white py-1 shadow-card-lg">
-          <Link
-            href={`/admin/users/${user._id}`}
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg"
-          >
-            <UserCog size={14} /> Manage
-          </Link>
-          <button
-            type="button"
-            disabled={acting || (isSelf && user.role === "admin")}
-            title={isSelf && user.role === "admin" ? "You can't remove your own admin access" : undefined}
-            onClick={() => act(onToggleRole)}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text hover:bg-bg disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {user.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
-            {user.role === "admin" ? "Remove admin" : "Make admin"}
-          </button>
-          <button
-            type="button"
-            disabled={acting || isSelf}
-            title={isSelf ? "You can't block your own access" : undefined}
-            onClick={() => act(onToggleBlock)}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text hover:bg-bg disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {user.isBlocked ? <CheckCircle2 size={14} /> : <Ban size={14} />}
-            {user.isBlocked ? "Unblock access" : "Block access"}
-          </button>
-          <button
-            type="button"
-            onClick={() => act(onChangePlan)}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text hover:bg-bg"
-          >
-            <Crown size={14} /> Change plan
-          </button>
-          <div className="my-1 h-px bg-border" />
-          <button
-            type="button"
-            disabled={isSelf}
-            title={isSelf ? "You can't delete your own account" : undefined}
-            onClick={() => act(onDelete)}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Trash2 size={14} /> Delete user
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function AdminUsersTable() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
   const [grandTotal, setGrandTotal] = useState(0);
   const [adminCount, setAdminCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
   const [loading, setLoading] = useState(true);
   const [actingOn, setActingOn] = useState(null);
   const [planModalUser, setPlanModalUser] = useState(null);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
   const [plans, setPlans] = useState([]);
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
 
   useEffect(() => {
     fetch("/api/admin/plans")
@@ -145,10 +66,16 @@ export default function AdminUsersTable() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
   const load = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => v && params.set(k, v));
+    params.set("page", String(page));
+    params.set("limit", String(perPage));
     fetch(`/api/admin/users?${params.toString()}`)
       .then((r) => r.json())
       .then((data) => {
@@ -158,7 +85,7 @@ export default function AdminUsersTable() {
         setAdminCount(data.adminCount || 0);
       })
       .finally(() => setLoading(false));
-  }, [filters]);
+  }, [filters, page, perPage]);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
@@ -192,6 +119,91 @@ export default function AdminUsersTable() {
     setGrandTotal((prev) => prev - 1);
     if (user.role === "admin") setAdminCount((prev) => prev - 1);
   };
+
+  const columns = [
+    {
+      key: "user",
+      title: "User",
+      render: (u) => {
+        const isSelf = u._id === session?.user?.id;
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar name={u.name} photo={u.photo} isPremium={Boolean(u.plan)} />
+            <div className="min-w-0">
+              <Link href={`/admin/users/${u._id}`} className="truncate font-medium text-text hover:text-primary hover:underline">
+                {u.name} {isSelf && <span className="text-xs font-normal text-text-secondary">(you)</span>}
+              </Link>
+              {u.isBlocked && (
+                <span className="ml-2 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">Blocked</span>
+              )}
+              <p className="truncate text-xs text-text-secondary">{u.email}</p>
+              {u.phone && (
+                <p className="flex items-center gap-1 truncate text-xs text-text-secondary">
+                  <Phone size={11} />
+                  {u.phone}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    { key: "provider", title: "Provider", render: (u) => <span className="capitalize text-text-secondary">{u.provider}</span> },
+    { key: "plan", title: "Plan", render: (u) => u.plan?.name || "Free" },
+    { key: "resumeCount", title: "Resumes", sortable: true },
+    {
+      key: "role",
+      title: "Role",
+      render: (u) => (
+        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.role === "admin" ? "bg-primary-light text-primary" : "bg-bg text-text-secondary"}`}>
+          {u.role}
+        </span>
+      ),
+    },
+    {
+      key: "createdAt",
+      title: "Joined",
+      sortable: true,
+      sortValue: (u) => new Date(u.createdAt),
+      render: (u) => <span className="text-text-secondary">{new Date(u.createdAt).toLocaleDateString("en-IN")}</span>,
+    },
+    {
+      key: "actions",
+      title: "Actions",
+      render: (u) => {
+        const isSelf = u._id === session?.user?.id;
+        const acting = actingOn === u._id;
+        return (
+          <CustomThreeDotMenu
+            actions={[
+              { label: "Manage", icon: <UserCog size={14} />, onClick: () => router.push(`/admin/users/${u._id}`) },
+              {
+                label: u.role === "admin" ? "Remove admin" : "Make admin",
+                icon: u.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />,
+                disabled: acting || (isSelf && u.role === "admin"),
+                onClick: () => patchUser(u, u.role === "admin" ? "demote" : "promote"),
+              },
+              {
+                label: u.isBlocked ? "Unblock access" : "Block access",
+                icon: u.isBlocked ? <CheckCircle2 size={14} /> : <Ban size={14} />,
+                disabled: acting || isSelf,
+                onClick: () => patchUser(u, u.isBlocked ? "unblock" : "block"),
+              },
+              { label: "Change plan", icon: <Crown size={14} />, onClick: () => setPlanModalUser(u) },
+              {
+                label: "Delete user",
+                icon: <Trash2 size={14} />,
+                destructive: true,
+                disabled: isSelf,
+                separatorBefore: true,
+                onClick: () => setDeleteModalUser(u),
+              },
+            ]}
+          />
+        );
+      },
+    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -270,81 +282,20 @@ export default function AdminUsersTable() {
         </div>
       </div>
 
-      <div className="card overflow-x-auto">
-        <table className="w-full min-w-[1000px] text-left text-sm">
-          <thead>
-            <tr className="sticky top-0 border-b border-border bg-white text-xs uppercase tracking-wide text-text-secondary">
-              <th className="px-4 py-3 font-semibold">User</th>
-              <th className="px-4 py-3 font-semibold">Provider</th>
-              <th className="px-4 py-3 font-semibold">Plan</th>
-              <th className="px-4 py-3 font-semibold">Resumes</th>
-              <th className="px-4 py-3 font-semibold">Role</th>
-              <th className="px-4 py-3 font-semibold">Joined</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && users.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-text-secondary">
-                  No users match these filters.
-                </td>
-              </tr>
-            )}
-            {users.map((u) => {
-              const isSelf = u._id === session?.user?.id;
-              return (
-                <tr key={u._id} className="border-b border-border align-top transition-colors last:border-0 hover:bg-bg">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={u.name} photo={u.photo} isPremium={Boolean(u.plan)} />
-                      <div className="min-w-0">
-                        <Link href={`/admin/users/${u._id}`} className="truncate font-medium text-text hover:text-primary hover:underline">
-                          {u.name} {isSelf && <span className="text-xs font-normal text-text-secondary">(you)</span>}
-                        </Link>
-                        {u.isBlocked && (
-                          <span className="ml-2 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">Blocked</span>
-                        )}
-                        <p className="truncate text-xs text-text-secondary">{u.email}</p>
-                        {u.phone && (
-                          <p className="flex items-center gap-1 truncate text-xs text-text-secondary">
-                            <Phone size={11} />
-                            {u.phone}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 capitalize text-text-secondary">{u.provider}</td>
-                  <td className="px-4 py-3 text-text">{u.plan?.name || "Free"}</td>
-                  <td className="px-4 py-3 text-text">{u.resumeCount}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        u.role === "admin" ? "bg-primary-light text-primary" : "bg-bg text-text-secondary"
-                      }`}
-                    >
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">{new Date(u.createdAt).toLocaleDateString("en-IN")}</td>
-                  <td className="px-4 py-3">
-                    <RowMenu
-                      user={u}
-                      isSelf={isSelf}
-                      acting={actingOn === u._id}
-                      onToggleRole={(user) => patchUser(user, user.role === "admin" ? "demote" : "promote")}
-                      onToggleBlock={(user) => patchUser(user, user.isBlocked ? "unblock" : "block")}
-                      onChangePlan={setPlanModalUser}
-                      onDelete={setDeleteModalUser}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <CustomTable
+        columns={columns}
+        data={users}
+        loading={loading}
+        emptyMessage="No users match these filters."
+        rowKey="_id"
+        perPageOptions={[10, 25, 50, 100]}
+        paginationState={{ page, perPage, totalPages }}
+        onPageChange={setPage}
+        onPerPageChange={(next) => {
+          setPerPage(next);
+          setPage(1);
+        }}
+      />
 
       <p className="text-xs text-text-secondary">{total} matching filter(s)</p>
 
