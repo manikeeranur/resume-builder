@@ -4,3 +4,7 @@ node_modules
 .env.local
 npm-debug.log*
 .DS_Store
+
+# Regenerated from the DB on every admin template save and before every
+# build — see lib/templateClassScan.js.
+/.tailwind-scan

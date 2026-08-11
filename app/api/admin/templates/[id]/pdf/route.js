@@ -10,17 +10,19 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // Renders the exact same way a real user's download would — Puppeteer
-// printing app/admin/templates/preview/[templateId], which runs the saved
-// template's code through the same compiler + sample data. Reflects the
-// last *saved* version, not unsaved keystrokes in the editor (matching how
-// ExactFirstPagePreview/PdfViewer already work for real resumes) — save
-// first, then regenerate this preview.
+// printing app/admin/templates/preview/[templateId], which runs the
+// template's code through the same compiler + sample data. Defaults to the
+// last *saved* version; pass ?draft=1 to render the admin editor's unsaved
+// keystrokes instead (mirrored into draftCode/draftFullBleed by
+// [id]/draft — see the editor's AutoPdfPreviewPane).
 export async function GET(req, { params }) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const isDraft = new URL(req.url).searchParams.get("draft") === "1";
+
   await dbConnect();
-  const template = await Template.findById(params.id).select("templateId fullBleed");
+  const template = await Template.findById(params.id).select("templateId fullBleed draftFullBleed");
   if (!template) return NextResponse.json({ error: "Template not found" }, { status: 404 });
 
   let browser = null;
@@ -29,10 +31,10 @@ export async function GET(req, { params }) {
     const origin = new URL(req.url).origin || process.env.NEXTAUTH_URL;
 
     const pdfBuffer = await renderPageToPdf(browser, {
-      url: `${origin}/admin/templates/preview/${template.templateId}`,
+      url: `${origin}/admin/templates/preview/${template.templateId}${isDraft ? "?draft=1" : ""}`,
       origin,
       req,
-      fullBleed: template.fullBleed,
+      fullBleed: isDraft ? template.draftFullBleed : template.fullBleed,
     });
 
     // Puppeteer's page.pdf() can succeed (no throw) yet hand back something

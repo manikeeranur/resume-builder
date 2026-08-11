@@ -7,6 +7,7 @@ import { LogIn, LogOut, Receipt } from "lucide-react";
 import LoginModal from "@/components/auth/LoginModal";
 import CrownBadge from "./CrownBadge";
 import AvatarImage from "@/components/ui/AvatarImage";
+import RailTooltip from "@/components/ui/RailTooltip";
 
 export default function UserMenu({ user, avatarUrl, isPremium, collapsed, googleEnabled }) {
   const [loginOpen, setLoginOpen] = useState(false);
@@ -27,10 +28,10 @@ export default function UserMenu({ user, avatarUrl, isPremium, collapsed, google
               type="button"
               onClick={() => setLoginOpen(true)}
               aria-label="Sign in"
-              title="Sign in"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
+              className="group relative flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
             >
               <LogIn size={15} />
+              <RailTooltip>Sign in</RailTooltip>
             </button>
           </div>
         ) : (
@@ -67,19 +68,19 @@ export default function UserMenu({ user, avatarUrl, isPremium, collapsed, google
         <Link
           href="/account/subscription"
           aria-label="Subscription"
-          title="Subscription"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
+          className="group relative flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
         >
           <Receipt size={15} />
+          <RailTooltip>Subscription</RailTooltip>
         </Link>
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/templates" })}
           aria-label="Sign out"
-          title="Sign out"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
+          className="group relative flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
         >
           <LogOut size={15} />
+          <RailTooltip>Sign out</RailTooltip>
         </button>
       </div>
     );

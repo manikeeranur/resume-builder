@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X, LayoutGrid, LayoutTemplate, CircleUserRound, FileText, CreditCard, ShieldCheck } from "lucide-react";
 import UserMenu from "./UserMenu";
 import TopNavbar from "./TopNavbar";
+import RailTooltip from "@/components/ui/RailTooltip";
 
 const BASE_NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
@@ -47,8 +48,7 @@ function NavLinks({ items, active, collapsed, onNavigate }) {
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            title={collapsed ? item.label : undefined}
-            className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+            className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
               collapsed ? "justify-center" : ""
             } ${isActive ? "bg-primary-light text-primary shadow-sm" : "text-text-secondary hover:bg-bg hover:text-text"}`}
           >
@@ -60,6 +60,7 @@ function NavLinks({ items, active, collapsed, onNavigate }) {
               <Icon size={16} />
             </span>
             {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+            {collapsed && <RailTooltip>{item.label}</RailTooltip>}
           </Link>
         );
       })}

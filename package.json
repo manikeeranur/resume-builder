@@ -3,13 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node --env-file=.env scripts/generateTemplateClassScan.mjs",
     "dev": "next dev",
+    "prebuild": "node --env-file=.env scripts/generateTemplateClassScan.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "restart": "kill -9 $(lsof -ti:3000) 2>/dev/null; next dev -p 3000",
+    "restart": "kill -9 $(lsof -ti:3000) 2>/dev/null; npm run predev; next dev -p 3000",
     "seed:plans": "node --env-file=.env scripts/seedPlans.mjs",
-    "admin:promote": "node --env-file=.env scripts/promoteAdmin.mjs"
+    "admin:promote": "node --env-file=.env scripts/promoteAdmin.mjs",
+    "generate:template-styles": "node --env-file=.env scripts/generateTemplateClassScan.mjs"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",

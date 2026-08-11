@@ -66,9 +66,9 @@ function Watermark({ text }) {
 // renders app/resumes/[id]/print for PDF/PNG export, runs real Chromium and
 // waits for #resume-content, so this client-side fetch+compile completes
 // before the page is captured exactly like a static template would.
-export default function ResumeDocument({ resume, watermark = false, watermarkText = "ResumePro" }) {
+export default function ResumeDocument({ resume, watermark = false, watermarkText = "ResumePro", draft = false }) {
   const staticComponent = TEMPLATE_COMPONENTS[resume.templateId];
-  const dynamicTemplate = useDynamicTemplate(staticComponent ? null : resume.templateId);
+  const dynamicTemplate = useDynamicTemplate(staticComponent ? null : resume.templateId, { draft });
 
   const Component = staticComponent || dynamicTemplate.Component;
 

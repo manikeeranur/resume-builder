@@ -5,6 +5,7 @@ import Resume from "@/lib/models/Resume";
 import AdminAuditLog from "@/lib/models/AdminAuditLog";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { compileTemplateComponent, TemplateCompileError } from "@/lib/compileTemplateCode";
+import { regenerateTemplateClassScan } from "@/lib/regenerateTemplateClassScan";
 
 // templateId isn't editable once created — it's embedded in every Resume
 // that already picked this template (Resume.templateId), same reasoning as
@@ -70,6 +71,8 @@ export async function PATCH(req, { params }) {
     newValue: { ...newValue, ...(newValue.code !== undefined ? { code: "(updated)" } : {}) },
   });
 
+  if (newValue.code !== undefined) regenerateTemplateClassScan();
+
   return NextResponse.json(template);
 }
 
@@ -103,6 +106,8 @@ export async function DELETE(req, { params }) {
     previousValue: { templateId: template.templateId, name: template.name },
     newValue: null,
   });
+
+  regenerateTemplateClassScan();
 
   return NextResponse.json({ success: true });
 }

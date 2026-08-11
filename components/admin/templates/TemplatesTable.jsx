@@ -2,9 +2,25 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, Crown } from "lucide-react";
+import { Pencil, Trash2, Crown, Lock } from "lucide-react";
 import CustomTable from "@/components/common/CustomTable";
 import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
+import { TEMPLATE_LIST } from "@/lib/templates";
+
+// The 6 built-in templates ship as static files (components/templates/
+// Template1.jsx..Template6.jsx), not a Template document — there's nothing
+// to fetch, edit or delete here. Shown as plain rows alongside the
+// DB-backed ones purely for visibility (so this list reflects every
+// template a real user can pick, not just the custom ones), with `id`
+// standing in for `_id` as this table's rowKey.
+const BUILT_IN_ROWS = TEMPLATE_LIST.map((t) => ({
+  _id: t.id,
+  name: t.name,
+  templateId: t.id,
+  premium: t.premium,
+  updatedAt: null,
+  isBuiltIn: true,
+}));
 
 export default function TemplatesTable() {
   const router = useRouter();
@@ -57,38 +73,49 @@ export default function TemplatesTable() {
     {
       key: "active",
       title: "Status",
-      render: (t) => (
-        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${t.active ? "bg-green-50 text-green-700" : "bg-bg text-text-secondary"}`}>
-          {t.active ? "Active" : "Draft"}
-        </span>
-      ),
+      render: (t) =>
+        t.isBuiltIn ? (
+          <span className="rounded-full bg-bg px-2 py-0.5 text-xs font-semibold text-text-secondary">Built-in</span>
+        ) : (
+          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${t.active ? "bg-green-50 text-green-700" : "bg-bg text-text-secondary"}`}>
+            {t.active ? "Active" : "Draft"}
+          </span>
+        ),
     },
     {
       key: "updatedAt",
       title: "Updated",
       sortable: true,
-      sortValue: (t) => new Date(t.updatedAt),
-      render: (t) => <span className="text-text-secondary">{new Date(t.updatedAt).toLocaleDateString("en-IN")}</span>,
+      sortValue: (t) => (t.updatedAt ? new Date(t.updatedAt) : new Date(0)),
+      render: (t) => <span className="text-text-secondary">{t.updatedAt ? new Date(t.updatedAt).toLocaleDateString("en-IN") : "—"}</span>,
     },
     {
       key: "actions",
       title: "Actions",
-      render: (t) => (
-        <CustomThreeDotMenu
-          actions={[
-            { label: "Edit", icon: <Pencil size={14} />, onClick: () => router.push(`/admin/templates/${t._id}`) },
-            {
-              label: "Delete",
-              icon: <Trash2 size={14} />,
-              destructive: true,
-              disabled: deletingId === t._id,
-              onClick: () => handleDelete(t),
-            },
-          ]}
-        />
-      ),
+      render: (t) =>
+        t.isBuiltIn ? (
+          <span className="flex items-center gap-1.5 text-xs text-text-secondary">
+            <Lock size={12} />
+            Not editable
+          </span>
+        ) : (
+          <CustomThreeDotMenu
+            actions={[
+              { label: "Edit", icon: <Pencil size={14} />, onClick: () => router.push(`/admin/templates/${t._id}`) },
+              {
+                label: "Delete",
+                icon: <Trash2 size={14} />,
+                destructive: true,
+                disabled: deletingId === t._id,
+                onClick: () => handleDelete(t),
+              },
+            ]}
+          />
+        ),
     },
   ];
+
+  const rows = [...BUILT_IN_ROWS, ...(templates || [])];
 
   return (
     <div className="space-y-3">
@@ -96,9 +123,9 @@ export default function TemplatesTable() {
 
       <CustomTable
         columns={columns}
-        data={templates || []}
+        data={rows}
         loading={templates === null}
-        emptyMessage="No custom templates yet — the 6 built-in templates ship with the app and aren't managed here."
+        emptyMessage="No templates found."
         rowKey="_id"
       />
     </div>

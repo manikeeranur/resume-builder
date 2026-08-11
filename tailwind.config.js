@@ -1,6 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./app/**/*.{js,jsx}", "./components/**/*.{js,jsx}"],
+  // The last entry is a generated, git-ignored file (see
+  // lib/templateClassScan.js) mirroring admin-authored template code purely
+  // for this scanner to see — deliberately outside app/**|components/** so
+  // rewriting it from an API route (on every template save) never touches
+  // Next's own page/component module graph or interrupts an in-flight
+  // request the way writing inside components/ once did.
+  content: ["./app/**/*.{js,jsx}", "./components/**/*.{js,jsx}", "./.tailwind-scan/**/*.jsx"],
   theme: {
     extend: {
       colors: {

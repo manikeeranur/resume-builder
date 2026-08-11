@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(time curl -s http://localhost:3000/__icon_scope_test__)",
+      "Bash(time curl -s http://localhost:3000/icon-scope-test-zzz)",
+      "Bash(time curl -s -o /dev/null -w \"editor page: %{http_code}\\\\n\" \"http://localhost:3000/admin/templates/000000000000000000000000\")",
+      "Bash(time curl -s -o /dev/null -w \"draft route: %{http_code}\\\\n\" -X PATCH -H \"Content-Type: application/json\" -d '{\"code\":\"x\"}' \"http://localhost:3000/api/admin/templates/000000000000000000000000/draft\")",
+      "Bash(node --env-file=.env scripts/generateTemplateClassScan.mjs)",
+      "Bash(node -e ' *)",
+      "Bash(time curl -s -o /dev/null -w \"preview page: %{http_code}\\\\n\" \"http://localhost:3000/admin/templates/preview/a\")",
+      "Bash(time curl -s -o /dev/null -w \"templates list: %{http_code}\\\\n\" \"http://localhost:3000/admin/templates\")"
+    ]
+  }
+}

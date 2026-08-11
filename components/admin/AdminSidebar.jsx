@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Menu, X, ShieldCheck, CreditCard, Repeat, Users, LayoutTemplate, ArrowLeft, LogOut } from "lucide-react";
+import AvatarImage from "@/components/ui/AvatarImage";
+import RailTooltip from "@/components/ui/RailTooltip";
 
 const NAV_ITEMS = [
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
@@ -13,18 +15,18 @@ const NAV_ITEMS = [
   { href: "/admin/templates", label: "Templates", icon: LayoutTemplate },
 ];
 
-function Logo() {
+function Logo({ collapsed }) {
   return (
-    <div className="flex items-center gap-2.5">
+    <div className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : ""}`}>
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
         <ShieldCheck size={18} />
       </span>
-      <span className="text-lg font-bold text-text">Admin</span>
+      {!collapsed && <span className="whitespace-nowrap text-lg font-bold text-text">Admin</span>}
     </div>
   );
 }
 
-function NavLinks({ active, onNavigate }) {
+function NavLinks({ active, collapsed, onNavigate }) {
   return (
     <nav className="flex-1 space-y-1.5">
       {NAV_ITEMS.map((item) => {
@@ -35,12 +37,19 @@ function NavLinks({ active, onNavigate }) {
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-              isActive ? "bg-primary-light text-primary" : "text-text-secondary hover:bg-bg hover:text-text"
-            }`}
+            className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+              collapsed ? "justify-center" : ""
+            } ${isActive ? "bg-primary-light text-primary shadow-sm" : "text-text-secondary hover:bg-bg hover:text-text"}`}
           >
-            <Icon size={17} />
-            {item.label}
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                isActive ? "bg-primary text-white" : "bg-bg text-text-secondary group-hover:text-text"
+              }`}
+            >
+              <Icon size={16} />
+            </span>
+            {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+            {collapsed && <RailTooltip>{item.label}</RailTooltip>}
           </Link>
         );
       })}
@@ -48,12 +57,48 @@ function NavLinks({ active, onNavigate }) {
   );
 }
 
-function Footer({ user }) {
+function Footer({ user, avatarUrl, collapsed }) {
+  const initial = (user?.name || "?").charAt(0).toUpperCase();
+  const avatar = (
+    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary ring-2 ring-primary/30 ring-offset-2">
+      {initial}
+      <AvatarImage src={avatarUrl || user?.image} alt={user?.name} className="absolute inset-0 h-full w-full object-cover" />
+    </span>
+  );
+
+  if (collapsed) {
+    return (
+      <div className="flex flex-col items-center gap-2 border-t border-border pt-4">
+        {avatar}
+        <Link
+          href="/dashboard"
+          aria-label="Exit to app"
+          className="group relative flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
+        >
+          <ArrowLeft size={15} />
+          <RailTooltip>Exit to app</RailTooltip>
+        </Link>
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          aria-label="Sign out"
+          className="group relative flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-red-600"
+        >
+          <LogOut size={15} />
+          <RailTooltip>Sign out</RailTooltip>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 border-t border-border pt-4">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-text">{user?.name}</p>
-        <p className="truncate text-xs text-text-secondary">{user?.email}</p>
+      <div className="flex items-center gap-3">
+        {avatar}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-text">{user?.name}</p>
+          <p className="truncate text-xs text-text-secondary">{user?.email}</p>
+        </div>
       </div>
       <Link href="/dashboard" className="flex items-center gap-2 text-xs font-semibold text-text-secondary hover:text-primary">
         <ArrowLeft size={13} />
@@ -76,7 +121,7 @@ function useActiveNav() {
   return NAV_ITEMS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.href || null;
 }
 
-export default function AdminSidebar({ user }) {
+export default function AdminSidebar({ user, avatarUrl }) {
   const active = useActiveNav();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -95,7 +140,9 @@ export default function AdminSidebar({ user }) {
         </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — full labels, unlike the collapsed desktop rail
+          below, since there's no persistent top navbar item to fall back
+          on for identifying a nav item by icon alone on a small screen. */}
       {mobileOpen && (
         <div className="fixed inset-0 z-30 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
@@ -112,20 +159,21 @@ export default function AdminSidebar({ user }) {
               </button>
             </div>
             <NavLinks active={active} onNavigate={() => setMobileOpen(false)} />
-            <Footer user={user} />
+            <Footer user={user} avatarUrl={avatarUrl} />
           </aside>
         </div>
       )}
 
-      {/* Desktop sidebar — fixed, full labels (unlike the main app rail, the
-          admin section has few enough items that icon-only would just add
-          a hover step for no space savings that matters). */}
-      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:h-screen md:w-64 md:flex-col md:border-r md:border-border md:bg-white md:px-5 md:py-6">
-        <div className="mb-8">
-          <Logo />
+      {/* Desktop sidebar — fixed, collapsed to an icon-only rail like the
+          main app's own DashboardShell rail (components/layout/DashboardShell.jsx),
+          so admin and regular-user chrome match instead of the admin side
+          alone spelling out labels in a wider column. */}
+      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:h-screen md:w-20 md:flex-col md:border-r md:border-border md:bg-white md:px-4 md:py-6">
+        <div className="mb-8 px-1">
+          <Logo collapsed />
         </div>
-        <NavLinks active={active} />
-        <Footer user={user} />
+        <NavLinks active={active} collapsed />
+        <Footer user={user} avatarUrl={avatarUrl} collapsed />
       </aside>
     </>
   );

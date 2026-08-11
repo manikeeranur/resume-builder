@@ -7,8 +7,20 @@ import AdminPaymentFilters from "./AdminPaymentFilters";
 import RefundModal from "./RefundModal";
 import CustomTable from "@/components/common/CustomTable";
 import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
+import AvatarImage from "@/components/ui/AvatarImage";
 
 const EMPTY_FILTERS = { q: "", user: "", planId: "", status: "", refundStatus: "", from: "", to: "" };
+
+// Same treatment as AdminUsersTable/AdminSubscriptionsTable's own Avatar.
+function Avatar({ name, photo }) {
+  const initial = (name || "?").charAt(0).toUpperCase();
+  return (
+    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary ring-2 ring-primary/20 ring-offset-2">
+      {initial}
+      <AvatarImage src={photo} alt={name} className="absolute inset-0 h-full w-full object-cover" />
+    </span>
+  );
+}
 
 // Same tone convention as AdminSubscriptionsTable's STATUS_STYLES — amber
 // for anything still in flight, green for success, red for failure.
@@ -83,9 +95,12 @@ export default function AdminPaymentsTable() {
       key: "user",
       title: "User",
       render: (p) => (
-        <div>
-          <p className="font-medium text-text">{p.userId?.name || "—"}</p>
-          <p className="text-xs text-text-secondary">{p.userId?.email}</p>
+        <div className="flex items-center gap-3">
+          <Avatar name={p.userId?.name} photo={p.userId?.photo} />
+          <div className="min-w-0">
+            <p className="truncate font-medium text-text">{p.userId?.name || "—"}</p>
+            <p className="truncate text-xs text-text-secondary">{p.userId?.email}</p>
+          </div>
         </div>
       ),
     },

@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/requireAdmin";
 import { compileTemplateComponent, TemplateCompileError } from "@/lib/compileTemplateCode";
 import { TEMPLATE_LIST } from "@/lib/templates";
 import { NEW_TEMPLATE_BOILERPLATE } from "@/lib/templateBoilerplate";
+import { regenerateTemplateClassScan } from "@/lib/regenerateTemplateClassScan";
 
 const TEMPLATE_ID_RE = /^[a-z0-9-]+$/;
 
@@ -70,6 +71,8 @@ export async function POST(req) {
     previousValue: null,
     newValue: { templateId, name },
   });
+
+  regenerateTemplateClassScan();
 
   return NextResponse.json(template, { status: 201 });
 }
