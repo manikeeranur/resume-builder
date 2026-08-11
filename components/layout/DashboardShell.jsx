@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, LayoutGrid, LayoutTemplate, CircleUserRound, FileText, CreditCard, ShieldCheck } from "lucide-react";
+import { Menu, X, LayoutGrid, LayoutTemplate, CircleUserRound, FileText, CreditCard, Crown, ShieldCheck } from "lucide-react";
 import UserMenu from "./UserMenu";
 import TopNavbar from "./TopNavbar";
 import RailTooltip from "@/components/ui/RailTooltip";
@@ -14,6 +14,7 @@ const BASE_NAV_ITEMS = [
   { href: "/templates", label: "Templates", icon: LayoutTemplate },
   { href: "/pricing", label: "Pricing", icon: CreditCard },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
+  { href: "/account/subscription", label: "Subscription", icon: Crown },
 ];
 
 function navItemsFor(user) {

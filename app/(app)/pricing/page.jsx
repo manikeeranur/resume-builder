@@ -17,6 +17,7 @@ export default async function PricingPage() {
   const plans = await Plan.find({ active: true }).sort({ price: 1 });
 
   let currentPlanCode = null;
+  let currentBillingType = null;
   let user = null;
   if (session) {
     const [{ plan: currentPlan }, dbUser] = await Promise.all([
@@ -24,6 +25,7 @@ export default async function PricingPage() {
       User.findById(session.user.id).select("name email phone"),
     ]);
     currentPlanCode = currentPlan.code;
+    currentBillingType = currentPlan.billingType;
     user = { name: dbUser?.name, email: dbUser?.email, phone: dbUser?.phone };
   }
 
@@ -38,6 +40,7 @@ export default async function PricingPage() {
         <PricingPlans
           plans={JSON.parse(JSON.stringify(plans))}
           currentPlanCode={currentPlanCode}
+          currentBillingType={currentBillingType}
           user={user}
         />
       </div>

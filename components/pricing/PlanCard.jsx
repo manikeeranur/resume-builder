@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { IconRosetteDiscountCheckFilled, IconXboxXFilled } from "@tabler/icons-react";
 import RazorpayCheckoutButton from "./RazorpayCheckoutButton";
 
 function formatPrice(plan) {
@@ -14,21 +14,42 @@ function billingLabel(plan) {
   return "";
 }
 
+// Monthly and Yearly carry identical features (see featureList) — the only
+// axis that ranks them is commitment/duration, so Yearly outranks Monthly
+// the same way any paid plan outranks Free.
+const BILLING_RANK = { FREE: 0, MONTHLY: 1, YEARLY: 2 };
+
+// Every card lists the same feature labels, checked or crossed out per
+// plan, so they compare at a glance instead of each card describing its own
+// tier in different words (e.g. free's "basic colors" vs paid's "custom
+// colors" for what's really the same yes/no feature).
 function featureList(plan) {
   return [
-    plan.resumeLimit == null ? "Unlimited resumes" : `${plan.resumeLimit} resume${plan.resumeLimit === 1 ? "" : "s"}`,
-    plan.pdfDownloadLimit == null
-      ? "Unlimited PDF downloads"
-      : `${plan.pdfDownloadLimit} PDF download${plan.pdfDownloadLimit === 1 ? "" : "s"} / period`,
-    plan.premiumTemplateAccess ? "All premium templates" : "Free templates only",
-    plan.watermarkEnabled ? "Watermark on exports" : "No watermark",
-    plan.customColors ? "Custom colors" : "Basic colors",
-    plan.customFonts ? "Custom fonts" : "Basic fonts",
+    { label: plan.resumeLimit == null ? "Unlimited resumes" : `${plan.resumeLimit} resume${plan.resumeLimit === 1 ? "" : "s"}`, included: true },
+    {
+      label:
+        plan.pdfDownloadLimit == null
+          ? "Unlimited PDF downloads"
+          : `${plan.pdfDownloadLimit} PDF download${plan.pdfDownloadLimit === 1 ? "" : "s"} / period`,
+      included: true,
+    },
+    { label: "Premium templates", included: plan.premiumTemplateAccess },
+    { label: "No watermark", included: !plan.watermarkEnabled },
+    { label: "Custom colors", included: plan.customColors },
+    { label: "Custom fonts", included: plan.customFonts },
   ];
 }
 
-export default function PlanCard({ plan, isCurrent, user, highlighted }) {
+export default function PlanCard({ plan, isCurrent, currentBillingType, user, highlighted }) {
   const isFree = plan.billingType === "FREE";
+  // Yearly <-> Monthly is a billing-cycle change, not a feature upgrade —
+  // both paid tiers have identical features, so framing it as "Upgrade"
+  // when the admin is already on the other paid plan reads as a bug.
+  const isSwitch = !isFree && currentBillingType && currentBillingType !== "FREE";
+  // A plan ranked below the one the user is already paying for offers
+  // nothing new — its features are a subset of what they already have —
+  // so it's disabled rather than offered as a clickable action.
+  const isLowerTier = user && currentBillingType && BILLING_RANK[plan.billingType] < BILLING_RANK[currentBillingType];
 
   return (
     <div
@@ -41,7 +62,11 @@ export default function PlanCard({ plan, isCurrent, user, highlighted }) {
       )}
       <div>
         <h3 className="text-lg font-bold text-text">{plan.name}</h3>
-        {plan.description && <p className="mt-1 text-sm text-text-secondary">{plan.description}</p>}
+        {/* min-h reserves space for a 2-line description even when this
+            plan's own description is a single line, so the price row below
+            starts at the same y-position across every card regardless of
+            how long each plan's description happens to be. */}
+        <p className="mt-1 min-h-[2.5rem] text-sm text-text-secondary">{plan.description}</p>
       </div>
 
       <div className="flex items-baseline gap-1.5">
@@ -51,9 +76,13 @@ export default function PlanCard({ plan, isCurrent, user, highlighted }) {
 
       <ul className="flex-1 space-y-2.5">
         {featureList(plan).map((f) => (
-          <li key={f} className="flex items-start gap-2 text-sm text-text">
-            <Check size={16} className="mt-0.5 shrink-0 text-success" />
-            <span>{f}</span>
+          <li key={f.label} className="flex items-start gap-2 text-sm text-text">
+            {f.included ? (
+              <IconRosetteDiscountCheckFilled size={16} className="mt-0.5 shrink-0 text-success" />
+            ) : (
+              <IconXboxXFilled size={16} className="mt-0.5 shrink-0 text-red-500" />
+            )}
+            <span>{f.label}</span>
           </li>
         ))}
       </ul>
@@ -61,6 +90,10 @@ export default function PlanCard({ plan, isCurrent, user, highlighted }) {
       {isCurrent ? (
         <span className="rounded-xl border border-border bg-bg px-4 py-2.5 text-center text-sm font-semibold text-text-secondary">
           Current plan
+        </span>
+      ) : isLowerTier ? (
+        <span className="rounded-xl border border-border bg-bg px-4 py-2.5 text-center text-sm font-semibold text-text-secondary opacity-60">
+          Included in your plan
         </span>
       ) : isFree ? (
         <Link
@@ -71,7 +104,7 @@ export default function PlanCard({ plan, isCurrent, user, highlighted }) {
         </Link>
       ) : user ? (
         <RazorpayCheckoutButton plan={plan} user={user} className="btn-primary w-full px-4 py-2.5 text-sm">
-          Upgrade to {plan.name}
+          {isSwitch ? `Switch to ${plan.name}` : `Upgrade to ${plan.name}`}
         </RazorpayCheckoutButton>
       ) : (
         <Link href="/login" className="btn-primary block px-4 py-2.5 text-center text-sm">

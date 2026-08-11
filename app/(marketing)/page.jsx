@@ -3,6 +3,12 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { Check, X } from "lucide-react";
 import { authOptions } from "@/lib/auth";
+import dbConnect from "@/lib/db";
+import Plan from "@/lib/models/Plan";
+
+function formatPlanPrice(plan) {
+  return `${plan.currency === "INR" ? "₹" : plan.currency}${plan.price.toLocaleString("en-IN")}`;
+}
 
 const FREE_FEATURES = [
   { label: "1 saved resume", included: true },
@@ -25,6 +31,21 @@ const PAID_FEATURES = [
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
   if (session) redirect("/dashboard");
+
+  // Read fresh from the DB, same as /pricing — hardcoding these strings is
+  // exactly what let this teaser drift out of sync with the real prices an
+  // admin sets in the Plan Manager.
+  await dbConnect();
+  const [monthlyPlan, yearlyPlan] = await Promise.all([
+    Plan.findOne({ billingType: "MONTHLY", active: true }).sort({ price: 1 }),
+    Plan.findOne({ billingType: "YEARLY", active: true }).sort({ price: 1 }),
+  ]);
+  const priceTeaser = [
+    monthlyPlan && `${formatPlanPrice(monthlyPlan)}/month`,
+    yearlyPlan && `${formatPlanPrice(yearlyPlan)}/year`,
+  ]
+    .filter(Boolean)
+    .join(" or ");
 
   return (
     <>
@@ -70,7 +91,7 @@ export default async function HomePage() {
 
           <div className="card border-primary p-6">
             <h2 className="text-lg font-bold text-text">Premium plans</h2>
-            <p className="mt-1 text-sm text-text-secondary">From ₹199/month or ₹1,499/year.</p>
+            <p className="mt-1 text-sm text-text-secondary">{priceTeaser ? `From ${priceTeaser}.` : "Billed monthly or yearly."}</p>
             <ul className="mt-4 space-y-2">
               {PAID_FEATURES.map((f) => (
                 <li key={f.label} className="flex items-center gap-2 text-sm text-text">

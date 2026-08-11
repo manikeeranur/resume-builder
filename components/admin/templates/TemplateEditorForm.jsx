@@ -11,6 +11,7 @@ import { compileTemplateComponent } from "@/lib/compileTemplateCode";
 import { fetchJson } from "@/lib/fetchJson";
 import { NEW_TEMPLATE_BOILERPLATE } from "@/lib/templateBoilerplate";
 import TemplateCodeEditor from "./TemplateCodeEditor";
+import ThumbnailUploader from "./ThumbnailUploader";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -340,9 +341,15 @@ export default function TemplateEditorForm({ templateDocId }) {
           </div>
           <div className="sm:col-span-2 lg:col-span-2">
             <label className="flex items-center gap-1 text-xs font-semibold text-text-secondary">
-              <ImageIcon size={12} /> Thumbnail URL (optional)
+              <ImageIcon size={12} /> Thumbnail (optional)
             </label>
-            <input className="input-field mt-1" value={form.thumbnail} onChange={(e) => setField("thumbnail", e.target.value)} placeholder="/templates/my-template.png" />
+            <div className="mt-1">
+              <ThumbnailUploader
+                value={form.thumbnail}
+                templateKey={form.templateId || form.name}
+                onChange={(url) => setField("thumbnail", url)}
+              />
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 sm:col-span-2 lg:col-span-2">
             <label className="flex items-center gap-2 text-sm text-text">
