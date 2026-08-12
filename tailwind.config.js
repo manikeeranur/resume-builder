@@ -1,12 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // The last entry is a generated, git-ignored file (see
-  // lib/templateClassScan.js) mirroring admin-authored template code purely
-  // for this scanner to see — deliberately outside app/**|components/** so
-  // rewriting it from an API route (on every template save) never touches
-  // Next's own page/component module graph or interrupts an in-flight
-  // request the way writing inside components/ once did.
-  content: ["./app/**/*.{js,jsx}", "./components/**/*.{js,jsx}", "./.tailwind-scan/**/*.jsx"],
+  content: [
+    "./app/**/*.{js,jsx,ts,tsx}",
+    "./components/**/*.{js,jsx,ts,tsx}",
+    "./.tailwind-scan/**/*.{js,jsx,ts,tsx}",
+  ],
   theme: {
     extend: {
       colors: {
@@ -19,11 +17,7 @@ module.exports = {
         "primary-hover": "var(--primary-hover)",
         "primary-light": "var(--primary-light)",
         success: "var(--success)",
-        // Aliases for the platform-fe design-token names used verbatim by
-        // ported components (CustomTable, Button, CustomThreeDotMenu) —
-        // mapped to resume-builder's own existing theme values (not
-        // platform-fe's actual brand colors) so those components render
-        // consistent with the rest of this app instead of clashing with it.
+
         "bg-primary": "#ffffff",
         "bg-secondary": "var(--bg)",
         "fg-primary": "var(--text)",
@@ -38,12 +32,18 @@ module.exports = {
         "card-lg": "var(--shadow-lg)",
       },
       fontFamily: {
-        sans: ["var(--font-body)", "Inter", "Segoe UI", "sans-serif"],
+        sans: [
+          "var(--font-body)",
+          "Inter",
+          "Segoe UI",
+          "sans-serif",
+        ],
       },
       borderRadius: {
         xl2: "1rem",
       },
     },
   },
+
   plugins: [],
 };
