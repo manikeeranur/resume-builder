@@ -20,7 +20,7 @@ function folderFor(userId, name) {
   return `resume-builder/${userId}-${slug || "user"}`;
 }
 
-export default function PhotoUploader({ value, name, userId, onChange }) {
+export default function PhotoUploader({ value, name, userId, onChange, renderTrigger }) {
   const fileInputRef = useRef(null);
   const [rawImage, setRawImage] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -82,47 +82,46 @@ export default function PhotoUploader({ value, name, userId, onChange }) {
     }
   };
 
+  const openFile = () => fileInputRef.current?.click();
+
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-text-secondary">Photo</label>
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          aria-label={value ? "Change photo" : "Upload photo"}
-          className="group relative h-[120px] w-[120px] shrink-0 rounded-full"
-        >
-          <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-border bg-bg">
-            {value ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={value} alt="Profile" className="h-full w-full object-cover" />
-            ) : (
-              <Camera size={32} className="text-text-secondary" />
+      {renderTrigger ? (
+        renderTrigger({ openFile, hasPhoto: Boolean(value), value })
+      ) : (
+        <>
+          <label className="mb-1 block text-xs font-medium text-text-secondary">Photo</label>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={openFile}
+              aria-label={value ? "Change photo" : "Upload photo"}
+              className="group relative h-[120px] w-[120px] shrink-0 rounded-full"
+            >
+              <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-border bg-bg">
+                {value ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={value} alt="Profile" className="h-full w-full object-cover" />
+                ) : (
+                  <Camera size={32} className="text-text-secondary" />
+                )}
+              </div>
+              {value && (
+                <span className="absolute bottom-0.5 right-0.5 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-primary text-white shadow-card-lg transition-transform group-hover:scale-110">
+                  <Pencil size={16} />
+                </span>
+              )}
+            </button>
+            {!value && (
+              <RippleButton type="button" onClick={openFile} className="btn-secondary px-3.5 py-2 text-xs">
+                Upload photo
+              </RippleButton>
             )}
           </div>
-          {value && (
-            <span className="absolute bottom-0.5 right-0.5 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-primary text-white shadow-card-lg transition-transform group-hover:scale-110">
-              <Pencil size={16} />
-            </span>
-          )}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-        {!value && (
-          <RippleButton
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="btn-secondary px-3.5 py-2 text-xs"
-          >
-            Upload photo
-          </RippleButton>
-        )}
-      </div>
+        </>
+      )}
+
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
 
       {rawImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

@@ -3,24 +3,26 @@ import PhotoUploader from "./PhotoUploader";
 
 const FIELDS = [
   { key: "fullName", label: "Full Name" },
-  { key: "title", label: "Title" },
-  { key: "email", label: "Email" },
-  { key: "phone", label: "Phone" },
+  { key: "title", label: "Title / Profession" },
+  { key: "email", label: "Email", type: "email" },
+  { key: "phone", label: "Phone", type: "tel" },
   { key: "location", label: "Location" },
-  { key: "linkedin", label: "LinkedIn" },
-  { key: "github", label: "GitHub" },
-  { key: "portfolio", label: "Portfolio" },
   { key: "dateOfBirth", label: "Date of Birth", type: "date" },
+  { key: "linkedin", label: "LinkedIn Profile" },
+  { key: "github", label: "GitHub Profile" },
+  { key: "portfolio", label: "Portfolio / Website" },
 ];
 
-export default function PersonalInfoForm({ value, onChange, userId }) {
+export default function PersonalInfoForm({ value, onChange, userId, hidePhotoUploader = false }) {
   const pi = value || {};
 
   const update = (key, val) => onChange({ ...pi, [key]: val });
 
   return (
     <div className="space-y-4">
-      <PhotoUploader value={pi.photo} name={pi.fullName} userId={userId} onChange={(url) => update("photo", url)} />
+      {!hidePhotoUploader && (
+        <PhotoUploader value={pi.photo} name={pi.fullName} userId={userId} onChange={(url) => update("photo", url)} />
+      )}
 
       {pi.photo && (
         <div className="flex items-center justify-between rounded-lg border border-border bg-bg px-3.5 py-2.5">
