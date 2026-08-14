@@ -15,10 +15,9 @@ export default async function PublicHeader() {
     <header className="sticky top-0 z-20 border-b border-border bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-base font-bold text-white">
-            R
-          </span>
-          <span className="text-lg font-bold text-text">ResumePro</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="ResumePro" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+          <span className="text-sm font-bold text-text">ResumePro</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

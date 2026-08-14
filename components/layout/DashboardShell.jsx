@@ -19,7 +19,7 @@ const BASE_NAV_ITEMS = [
 
 function navItemsFor(user) {
   if (user?.role !== "admin") return BASE_NAV_ITEMS;
-  return [...BASE_NAV_ITEMS, { href: "/admin/payments", label: "Admin", icon: ShieldCheck }];
+  return [...BASE_NAV_ITEMS, { href: "/admin/payments", label: "Admin", icon: ShieldCheck, newTab: true }];
 }
 
 function useActiveNav(items) {
@@ -30,10 +30,9 @@ function useActiveNav(items) {
 function Logo({ collapsed }) {
   return (
     <div className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : ""}`}>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-base font-bold text-white">
-        R
-      </span>
-      {!collapsed && <span className="whitespace-nowrap text-lg font-bold text-text">ResumePro</span>}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo.png" alt="ResumePro" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+      {!collapsed && <span className="whitespace-nowrap text-sm font-bold text-text">ResumePro</span>}
     </div>
   );
 }
@@ -49,6 +48,8 @@ function NavLinks({ items, active, collapsed, onNavigate }) {
             key={item.href}
             href={item.href}
             onClick={onNavigate}
+            target={item.newTab ? "_blank" : undefined}
+            rel={item.newTab ? "noopener noreferrer" : undefined}
             className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
               collapsed ? "justify-center" : ""
             } ${isActive ? "bg-primary-light text-primary shadow-sm" : "text-text-secondary hover:bg-bg hover:text-text"}`}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Menu, X, ShieldCheck, CreditCard, Crown, Users, LayoutTemplate, ArrowLeft, LogOut } from "lucide-react";
+import { Menu, X, CreditCard, Crown, Users, LayoutTemplate, ArrowLeft, LogOut } from "lucide-react";
 import AvatarImage from "@/components/ui/AvatarImage";
 import RailTooltip from "@/components/ui/RailTooltip";
 
@@ -18,10 +18,9 @@ const NAV_ITEMS = [
 function Logo({ collapsed }) {
   return (
     <div className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : ""}`}>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
-        <ShieldCheck size={18} />
-      </span>
-      {!collapsed && <span className="whitespace-nowrap text-lg font-bold text-text">Admin</span>}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo.png" alt="ResumePro" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+      {!collapsed && <span className="whitespace-nowrap text-sm font-bold text-text">Admin</span>}
     </div>
   );
 }
