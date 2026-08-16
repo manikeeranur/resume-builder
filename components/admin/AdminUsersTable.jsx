@@ -151,6 +151,7 @@ export default function AdminUsersTable() {
     { key: "provider", title: "Provider", render: (u) => <span className="capitalize text-text-secondary">{u.provider}</span> },
     { key: "plan", title: "Plan", render: (u) => u.plan?.name || "Free" },
     { key: "resumeCount", title: "Resumes", sortable: true },
+    { key: "downloadCount", title: "Downloads", sortable: true },
     {
       key: "role",
       title: "Role",

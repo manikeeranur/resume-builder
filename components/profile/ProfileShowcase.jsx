@@ -99,7 +99,12 @@ function computeYearsExperience(experience) {
 // of everything they've filled in, shown by default on /profile. Editing
 // happens in a separate mode (see ProfileEditor); this component only
 // ever displays.
-export default function ProfileShowcase({ sections, isPremium }) {
+//
+// `embedded` drops the full-viewport min-h-screen/page-background wrapper
+// for callers (e.g. the admin user detail page) that place this inside
+// their own page — which already supplies that same #f8f9fc background —
+// instead of as a standalone route.
+export default function ProfileShowcase({ sections, isPremium, embedded = false }) {
   const pi = sections.personalInfo || {};
   const experience = sections.experience || [];
   const projects = sections.projects || [];
@@ -139,8 +144,8 @@ export default function ProfileShowcase({ sections, isPremium }) {
     !pi.fullName && !summary && !experience.length && !projects.length && !skills.length && !education.length;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc]">
-      <div className="mx-auto max-w-[1100px] px-4 py-6 sm:px-6">
+    <div className={embedded ? "" : "min-h-screen bg-[#f8f9fc]"}>
+      <div className={embedded ? "" : "mx-auto max-w-[1100px] px-4 py-6 sm:px-6"}>
         {/* Profile header */}
         <div className="rounded-2xl bg-white p-6">
           <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:text-left">

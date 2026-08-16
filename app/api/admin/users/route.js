@@ -3,7 +3,8 @@ import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
 import Resume from "@/lib/models/Resume";
 import Subscription from "@/lib/models/Subscription";
-import Profile from "@/lib/models/Profile";
+import PdfDownloadLog from "@/lib/models/PdfDownloadLog";
+import { getAdminContactInfo } from "@/lib/adminAvatars";
 // Not used directly — importing it registers the schema with Mongoose,
 // which populate("planId") below requires. Without it, on a cold process
 // (e.g. a fresh Vercel serverless invocation of this route) that never
@@ -69,39 +70,41 @@ export async function GET(req) {
 
   const userIds = users.map((u) => u._id);
 
-  // Batched per-page, not per-row — a resume count, active plan and
-  // profile photo for every user on this page, in three queries total
-  // instead of 3*N.
-  const [resumeCounts, subscriptions, profiles] = await Promise.all([
+  // Batched per-page, not per-row — a resume count, download count, active
+  // plan and contact info for every user on this page, in four queries
+  // total instead of 4*N.
+  const [resumeCounts, downloadCounts, subscriptions, contactByUser] = await Promise.all([
     Resume.aggregate([{ $match: { userId: { $in: userIds } } }, { $group: { _id: "$userId", count: { $sum: 1 } } }]),
+    PdfDownloadLog.aggregate([{ $match: { userId: { $in: userIds } } }, { $group: { _id: "$userId", count: { $sum: 1 } } }]),
     Subscription.find({ userId: { $in: userIds }, status: "ACTIVE" }).populate("planId", "name code"),
-    Profile.find({ userId: { $in: userIds } }).select("userId sections.personalInfo.photo sections.personalInfo.phone"),
+    getAdminContactInfo(userIds),
   ]);
 
   const resumeCountByUser = new Map(resumeCounts.map((r) => [r._id.toString(), r.count]));
+  const downloadCountByUser = new Map(downloadCounts.map((d) => [d._id.toString(), d.count]));
   const subscriptionByUser = new Map(subscriptions.map((s) => [s.userId.toString(), s]));
-  const photoByUser = new Map(profiles.map((p) => [p.userId.toString(), p.sections?.personalInfo?.photo || null]));
-  const profilePhoneByUser = new Map(profiles.map((p) => [p.userId.toString(), p.sections?.personalInfo?.phone || null]));
 
   const result = users.map((u) => {
     const subscription = subscriptionByUser.get(u._id.toString()) || null;
+    const contact = contactByUser.get(u._id.toString()) || {};
     return {
       _id: u._id,
       name: u.name,
       email: u.email,
       // User.phone only ever gets set by a future Razorpay-checkout-prefill
       // flow (nothing currently writes to it) — the phone number a user
-      // actually enters lives on their Profile (used for their resume's
-      // contact info), so that's the one worth showing here.
-      phone: profilePhoneByUser.get(u._id.toString()) || u.phone || null,
+      // actually entered lives on their Profile or, more often, their
+      // resume(s) — see getAdminContactInfo.
+      phone: contact.phone || u.phone || null,
       // The app-wide precedence (see app/(app)/layout.jsx) is the user's own
       // uploaded profile photo first, falling back to their OAuth avatar.
-      photo: photoByUser.get(u._id.toString()) || u.image || null,
+      photo: contact.photo || u.image || null,
       provider: u.provider,
       role: u.role,
       isBlocked: u.isBlocked,
       createdAt: u.createdAt,
       resumeCount: resumeCountByUser.get(u._id.toString()) || 0,
+      downloadCount: downloadCountByUser.get(u._id.toString()) || 0,
       plan: subscription?.planId || null,
       subscriptionId: subscription?._id || null,
     };

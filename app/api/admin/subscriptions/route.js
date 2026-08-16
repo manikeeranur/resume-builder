@@ -3,8 +3,8 @@ import dbConnect from "@/lib/db";
 import Subscription from "@/lib/models/Subscription";
 import User from "@/lib/models/User";
 import Plan from "@/lib/models/Plan";
-import Profile from "@/lib/models/Profile";
 import AdminAuditLog from "@/lib/models/AdminAuditLog";
+import { getAdminContactInfo } from "@/lib/adminAvatars";
 import { requireAdmin } from "@/lib/requireAdmin";
 
 export async function GET(req) {
@@ -53,15 +53,15 @@ export async function GET(req) {
   // Same precedence as /api/admin/users and the app-wide layout: a user's
   // own uploaded profile photo (their actual resume photo) first, OAuth
   // avatar only as a fallback — not just the OAuth image, so this matches
-  // exactly what the user actually looks like elsewhere in the product.
+  // exactly what the user actually looks like elsewhere in the product. See
+  // getAdminContactInfo for why a Resume fallback sits in between.
   const userIds = subscriptions.map((s) => s.userId?._id).filter(Boolean);
-  const profiles = await Profile.find({ userId: { $in: userIds } }).select("userId sections.personalInfo.photo");
-  const photoByUser = new Map(profiles.map((p) => [p.userId.toString(), p.sections?.personalInfo?.photo || null]));
+  const contactByUser = await getAdminContactInfo(userIds);
 
   const withPhotos = subscriptions.map((s) => {
     const obj = s.toObject();
     if (obj.userId) {
-      obj.userId.photo = photoByUser.get(obj.userId._id.toString()) || obj.userId.image || null;
+      obj.userId.photo = contactByUser.get(obj.userId._id.toString())?.photo || obj.userId.image || null;
     }
     return obj;
   });

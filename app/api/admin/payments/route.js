@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import dbConnect from "@/lib/db";
 import Payment from "@/lib/models/Payment";
 import User from "@/lib/models/User";
-import Profile from "@/lib/models/Profile";
+import { getAdminContactInfo } from "@/lib/adminAvatars";
 import { requireAdmin } from "@/lib/requireAdmin";
 // Registers the Plan schema with Mongoose — required by populate("planId")
 // below even though Plan isn't referenced directly. See the same note in
@@ -60,15 +60,15 @@ export async function GET(req) {
 
   // Same app-wide precedence as everywhere else a user's avatar shows up
   // (app/(app)/layout.jsx, /api/admin/users, /api/admin/subscriptions): the
-  // user's own uploaded profile photo first, their OAuth avatar otherwise.
+  // user's own uploaded profile photo first, their OAuth avatar otherwise —
+  // see getAdminContactInfo for why a Resume fallback sits in between.
   const userIds = payments.map((p) => p.userId?._id).filter(Boolean);
-  const profiles = await Profile.find({ userId: { $in: userIds } }).select("userId sections.personalInfo.photo");
-  const photoByUser = new Map(profiles.map((pr) => [pr.userId.toString(), pr.sections?.personalInfo?.photo || null]));
+  const contactByUser = await getAdminContactInfo(userIds);
 
   const result = payments.map((p) => {
     const obj = p.toObject();
     if (obj.userId) {
-      obj.userId.photo = photoByUser.get(obj.userId._id.toString()) || obj.userId.image || null;
+      obj.userId.photo = contactByUser.get(obj.userId._id.toString())?.photo || obj.userId.image || null;
     }
     return obj;
   });
