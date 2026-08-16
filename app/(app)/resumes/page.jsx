@@ -43,7 +43,7 @@ export default async function ResumesPage({ searchParams }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-bold text-text">All Resumes</h1>
         <Link
