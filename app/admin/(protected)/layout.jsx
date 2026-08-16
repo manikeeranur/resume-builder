@@ -10,12 +10,13 @@ import AdminTopNavbar from "@/components/admin/AdminTopNavbar";
 // lib/auth.js jwt callback) — a role change by another admin takes effect
 // on this user's very next request, no re-login required.
 //
-// This layout lives under the (protected) route group so it never wraps
-// app/admin/login itself — gating that page too would redirect it into a
-// loop the moment an unauthenticated visitor tried to load it.
+// There's no separate /admin/login anymore — an admin signs in through the
+// same /login every other user uses (see lib/auth.js's pages.signIn), and
+// lands here afterward the same way any protected route would send them
+// back to where they were headed.
 export default async function AdminLayout({ children }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/admin/login");
+  if (!session) redirect("/login");
   if (session.user.role !== "admin") redirect("/dashboard");
 
   // Same avatar source as the regular-user shell (app/(app)/layout.jsx):

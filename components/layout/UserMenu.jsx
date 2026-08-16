@@ -66,7 +66,7 @@ export default function UserMenu({ user, avatarUrl, isPremium, collapsed, google
         {avatar}
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/templates" })}
+          onClick={() => signOut({ callbackUrl: "/" })}
           aria-label="Sign out"
           className="group relative flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-primary"
         >
@@ -84,7 +84,7 @@ export default function UserMenu({ user, avatarUrl, isPremium, collapsed, google
         <p className="truncate text-sm font-semibold text-text">{user.name}</p>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/templates" })}
+          onClick={() => signOut({ callbackUrl: "/" })}
           className="text-xs font-medium text-text-secondary hover:text-primary"
         >
           Sign out

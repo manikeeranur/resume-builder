@@ -117,9 +117,14 @@ export default function LoginModal({ onClose, onSuccess, googleEnabled, defaultM
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-base font-bold text-text">
-            {mode === "login" ? "Welcome back! Please sign in." : "Create your account"}
-          </h2>
+          <div className="flex items-center gap-2.5">
+            {/* Same mark as the app/admin sidebars (DashboardShell, AdminSidebar) */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="ResumePro" className="h-8 w-8 shrink-0 rounded-lg object-cover" />
+            <h2 className="text-base font-bold text-text">
+              {mode === "login" ? "Welcome back! Please sign in." : "Create your account"}
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onClose}

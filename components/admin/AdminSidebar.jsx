@@ -79,7 +79,7 @@ function Footer({ user, avatarUrl, collapsed }) {
         </Link>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          onClick={() => signOut({ callbackUrl: "/" })}
           aria-label="Sign out"
           className="group relative flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg hover:text-red-600"
         >

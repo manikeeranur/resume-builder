@@ -51,9 +51,9 @@ export default function SignupForm({ googleEnabled }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
       <div className="mb-6 flex items-center justify-center gap-2.5">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white">
-          R
-        </span>
+        {/* Same mark as the app/admin sidebars (DashboardShell, AdminSidebar) */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="ResumePro" className="h-10 w-10 shrink-0 rounded-xl object-cover" />
         <span className="text-xl font-bold text-text">ResumePro</span>
       </div>
 
