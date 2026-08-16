@@ -232,7 +232,7 @@ export default async function HomePage() {
       </section>
 
       {/* Closing CTA banner */}
-      <section className="bg-gradient-to-br from-primary to-[#8a7cf0]">
+      <section className="container  mx-auto  mb-10 rounded-[16px] bg-gradient-to-br from-primary to-[#8a7cf0]">
         <Reveal className="mx-auto max-w-[900px] px-4 py-16 text-center sm:px-6">
           <h2 className="text-2xl font-bold text-white sm:text-3xl">Ready to build your resume?</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-white/85 sm:text-base">
