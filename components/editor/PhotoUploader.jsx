@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Cropper from "react-easy-crop";
 import { Camera, Pencil, X } from "lucide-react";
 import { getCroppedImageBlob } from "@/lib/cropImage";
@@ -123,65 +124,73 @@ export default function PhotoUploader({ value, name, userId, onChange, renderTri
 
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
 
-      {rawImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-card-lg">
-            <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-              <h2 className="text-sm font-bold text-text">Crop photo</h2>
-              <button
-                type="button"
-                onClick={closeModal}
-                aria-label="Close"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg"
-              >
-                <X size={18} />
-              </button>
-            </div>
+      {rawImage &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={closeModal}
+          >
+            <div
+              className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-card-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+                <h2 className="text-sm font-bold text-text">Crop photo</h2>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  aria-label="Close"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg"
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
-            <div className="relative h-80 w-full bg-bg">
-              <Cropper
-                image={rawImage}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                cropShape="round"
-                showGrid={false}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
-              />
-            </div>
+              <div className="relative h-96 w-full bg-bg">
+                <Cropper
+                  image={rawImage}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  cropShape="round"
+                  showGrid={false}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                />
+              </div>
 
-            <div className="px-5 py-4">
-              <label className="mb-1.5 block text-xs font-medium text-text-secondary">Zoom</label>
-              <input
-                type="range"
-                min={1}
-                max={3}
-                step={0.01}
-                value={zoom}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                className="w-full"
-              />
-              {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-            </div>
+              <div className="px-5 py-4">
+                <label className="mb-1.5 block text-xs font-medium text-text-secondary">Zoom</label>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.01}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full"
+                />
+                {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+              </div>
 
-            <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-3.5">
-              <button type="button" onClick={closeModal} className="btn-secondary px-4 py-2 text-sm">
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={uploading}
-                className="btn-primary px-5 py-2 text-sm"
-              >
-                {uploading ? "Uploading…" : "Save"}
-              </button>
+              <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-3.5">
+                <button type="button" onClick={closeModal} className="btn-secondary px-4 py-2 text-sm">
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={uploading}
+                  className="btn-primary px-5 py-2 text-sm"
+                >
+                  {uploading ? "Uploading…" : "Save"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
