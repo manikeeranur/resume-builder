@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
-import { sendWelcomeEmail } from "@/lib/email";
+import { sendSignupOtpEmail } from "@/lib/email";
+import { issueOtp, OTP_TTL_MINUTES } from "@/lib/otp";
 
 export async function POST(req) {
   try {
@@ -20,11 +21,16 @@ export async function POST(req) {
     }
 
     const passwordHash = await User.hashPassword(password);
+    // emailVerified defaults to false — this account can't sign in (see
+    // authorize() in lib/auth.js) until the code below is entered on
+    // /verify-email. The "Welcome" email fires there, not here, since an
+    // account nobody's verified yet isn't really ready to welcome.
     await User.create({ name, email: email.toLowerCase(), passwordHash, provider: "credentials" });
 
+    const otp = await issueOtp({ email: email.toLowerCase(), purpose: "signup" });
     // Best-effort, same as every other email in the app — a delivery
     // failure must never fail the signup response itself.
-    sendWelcomeEmail({ to: email.toLowerCase(), name }).catch(() => {});
+    sendSignupOtpEmail({ to: email.toLowerCase(), name, otp, ttlMinutes: OTP_TTL_MINUTES }).catch(() => {});
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

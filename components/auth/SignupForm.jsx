@@ -4,7 +4,11 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { IconBrandGoogle } from "@tabler/icons-react";
 import PasswordInput from "@/components/ui/PasswordInput";
+
+// See the matching comment in LoginForm.jsx.
+const PILL = { borderRadius: "9999px" };
 
 export default function SignupForm({ googleEnabled }) {
   const router = useRouter();
@@ -30,18 +34,10 @@ export default function SignupForm({ googleEnabled }) {
         setLoading(false);
         return;
       }
-      const signInRes = await signIn("credentials", {
-        redirect: false,
-        email: form.email,
-        password: form.password,
-      });
-      setLoading(false);
-      if (signInRes?.error) {
-        router.push("/login");
-        return;
-      }
-      router.push("/dashboard");
-      router.refresh();
+      // The account can't sign in yet — emailVerified is false until the
+      // code just emailed to them is entered — so this sends them straight
+      // to that step instead of attempting a sign-in that would only fail.
+      router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch {
       setError("Network error. Please try again.");
       setLoading(false);
@@ -50,73 +46,91 @@ export default function SignupForm({ googleEnabled }) {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-      <div className="mb-8 flex items-center gap-2.5">
+      <div className="mb-6 flex items-center justify-center gap-2.5">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white">
           R
         </span>
         <span className="text-xl font-bold text-text">ResumePro</span>
       </div>
 
-      <h1 className="mb-1 text-2xl font-bold text-text">Create your account</h1>
-      <p className="mb-6 text-sm text-text-secondary">Build your perfect resume in minutes</p>
+      <h1 className="mb-1 text-center text-2xl font-bold text-text">Create your account</h1>
+      <p className="mb-8 text-center text-sm text-text-secondary">Build your perfect resume in minutes</p>
 
       {googleEnabled && (
         <>
           <button
             type="button"
             onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-            className="btn-secondary mb-4 flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm"
+            style={PILL}
+            className="btn-secondary mb-4 flex w-full items-center justify-center gap-2.5 px-4 py-3 text-sm"
           >
+            <IconBrandGoogle size={18} />
             Continue with Google
           </button>
-          <div className="mb-4 flex items-center gap-3 text-xs text-text-secondary">
+          <div className="mb-4 flex items-center gap-3 text-xs font-bold tracking-wide text-text-secondary">
             <span className="h-px flex-1 bg-border" />
-            or
+            OR
             <span className="h-px flex-1 bg-border" />
           </div>
         </>
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <input
+          style={PILL}
+          className="input-field px-5 py-3"
+          type="text"
+          name="name"
+          placeholder="Full Name"
+          aria-label="Full Name"
+          required
+          value={form.name}
+          onChange={handleChange}
+        />
+        <input
+          style={PILL}
+          className="input-field px-5 py-3"
+          type="email"
+          name="email"
+          placeholder="Email Address"
+          aria-label="Email Address"
+          required
+          value={form.email}
+          onChange={handleChange}
+        />
         <div>
-          <label className="mb-1 block text-sm font-medium text-text">Full name</label>
-          <input
-            className="input-field"
-            type="text"
-            name="name"
-            required
-            value={form.name}
-            onChange={handleChange}
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-text">Email</label>
-          <input
-            className="input-field"
-            type="email"
-            name="email"
-            required
-            value={form.email}
-            onChange={handleChange}
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-text">Password</label>
           <PasswordInput
+            style={PILL}
+            className="px-5 py-3"
             name="password"
+            placeholder="Password"
+            aria-label="Password"
             required
             minLength={6}
             value={form.password}
             onChange={handleChange}
           />
+          <p className="mt-1.5 px-1 text-xs text-text-secondary">Password should be at least 6 characters.</p>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button type="submit" disabled={loading} className="btn-primary px-4 py-2.5 text-sm">
+        <button type="submit" disabled={loading} style={PILL} className="btn-primary px-4 py-3 text-sm">
           {loading ? "Creating account…" : "Create Account"}
         </button>
       </form>
+
+      <p className="mt-5 text-center text-xs text-text-secondary">
+        By signing up you agree to our{" "}
+        <Link href="/terms" className="underline hover:text-primary">
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy-policy" className="underline hover:text-primary">
+          Privacy Policy
+        </Link>
+        .
+      </p>
 
       <p className="mt-6 text-center text-sm text-text-secondary">
         Already have an account?{" "}

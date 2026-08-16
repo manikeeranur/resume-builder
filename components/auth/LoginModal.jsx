@@ -40,6 +40,11 @@ export default function LoginModal({ onClose, onSuccess, googleEnabled, defaultM
       email: form.email,
       password: form.password,
     });
+    if (res?.error === "EmailNotVerified") {
+      router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
+      onClose();
+      return false;
+    }
     if (res?.error) {
       setError("Invalid email or password");
       return false;
@@ -47,6 +52,13 @@ export default function LoginModal({ onClose, onSuccess, googleEnabled, defaultM
     return true;
   };
 
+  // A fresh credentials account can't sign in yet — emailVerified is false
+  // until the code just emailed to them is entered (see lib/auth.js) — so
+  // this doesn't attempt the old immediate-sign-in-after-signup anymore;
+  // that would only ever fail now. Sends them to /verify-email instead,
+  // same as the standalone signup page. Their local draft is still in
+  // localStorage and will be picked up by DraftPromoter the moment they
+  // come back signed in — nothing here is lost, just deferred one step.
   const handleSignup = async () => {
     const res = await fetch("/api/signup", {
       method: "POST",
@@ -58,17 +70,9 @@ export default function LoginModal({ onClose, onSuccess, googleEnabled, defaultM
       setError(data.error || "Signup failed");
       return false;
     }
-    const signInRes = await signIn("credentials", {
-      redirect: false,
-      email: form.email,
-      password: form.password,
-    });
-    if (signInRes?.error) {
-      setError("Account created — please sign in.");
-      switchMode("login");
-      return false;
-    }
-    return true;
+    router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
+    onClose();
+    return false;
   };
 
   const handleSubmit = async (e) => {
