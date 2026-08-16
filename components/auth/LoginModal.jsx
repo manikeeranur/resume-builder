@@ -4,8 +4,16 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { X } from "lucide-react";
+import { IconBrandGoogle } from "@tabler/icons-react";
 import PasswordInput from "@/components/ui/PasswordInput";
+import { stashPendingPassword } from "@/lib/pendingAuthPassword";
+
+// See the matching comment in LoginForm.jsx — pill shape needs an inline
+// style since .input-field/.btn-primary/.btn-secondary (app/globals.css)
+// would otherwise win the cascade over a `rounded-full` utility class.
+const PILL = { borderRadius: "9999px" };
 
 // Handles both sign-in and account creation — a mode toggle in place of
 // separate /login and /signup pages, so the whole flow can happen without
@@ -16,6 +24,11 @@ import PasswordInput from "@/components/ui/PasswordInput";
 // to the session change this produces. Google sign-in is the exception —
 // it's a full-page redirect, so the caller must have already persisted
 // anything it needs (setPendingPromotion) before rendering this modal.
+//
+// Same visual language as the standalone /login and /signup pages
+// (LoginForm/SignupForm) — pill inputs/buttons, Google icon, placeholder-
+// only fields — so this doesn't read as a different, older screen just
+// because it opens as a modal instead of a full page.
 //
 // Portaled straight to <body> so it's always centered on the true
 // viewport, not whichever backdrop-blur/sticky ancestor it was opened
@@ -41,6 +54,7 @@ export default function LoginModal({ onClose, onSuccess, googleEnabled, defaultM
       password: form.password,
     });
     if (res?.error === "EmailNotVerified") {
+      stashPendingPassword(form.email, form.password);
       router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
       onClose();
       return false;
@@ -70,6 +84,7 @@ export default function LoginModal({ onClose, onSuccess, googleEnabled, defaultM
       setError(data.error || "Signup failed");
       return false;
     }
+    stashPendingPassword(form.email, form.password);
     router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
     onClose();
     return false;
@@ -103,13 +118,13 @@ export default function LoginModal({ onClose, onSuccess, googleEnabled, defaultM
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-base font-bold text-text">
-            {mode === "login" ? "Sign in to continue" : "Create your account"}
+            {mode === "login" ? "Welcome back! Please sign in." : "Create your account"}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-bg"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:bg-bg"
           >
             <X size={18} />
           </button>
@@ -127,13 +142,15 @@ export default function LoginModal({ onClose, onSuccess, googleEnabled, defaultM
               <button
                 type="button"
                 onClick={() => signIn("google")}
-                className="btn-secondary mb-4 flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm"
+                style={PILL}
+                className="btn-secondary mb-4 flex w-full items-center justify-center gap-2.5 px-4 py-3 text-sm"
               >
+                <IconBrandGoogle size={18} />
                 Continue with Google
               </button>
-              <div className="mb-4 flex items-center gap-3 text-xs text-text-secondary">
+              <div className="mb-4 flex items-center gap-3 text-xs font-bold tracking-wide text-text-secondary">
                 <span className="h-px flex-1 bg-border" />
-                or
+                OR
                 <span className="h-px flex-1 bg-border" />
               </div>
             </>
@@ -141,43 +158,56 @@ export default function LoginModal({ onClose, onSuccess, googleEnabled, defaultM
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {mode === "signup" && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-text">Full name</label>
-                <input
-                  className="input-field"
-                  type="text"
-                  name="name"
-                  required
-                  value={form.name}
-                  onChange={handleChange}
-                />
+              <input
+                style={PILL}
+                className="input-field px-5 py-3"
+                type="text"
+                name="name"
+                placeholder="Full Name"
+                aria-label="Full Name"
+                required
+                value={form.name}
+                onChange={handleChange}
+              />
+            )}
+            <input
+              style={PILL}
+              className="input-field px-5 py-3"
+              type="email"
+              name="email"
+              placeholder="Email Address"
+              aria-label="Email Address"
+              required
+              value={form.email}
+              onChange={handleChange}
+            />
+            <PasswordInput
+              style={PILL}
+              className="px-5 py-3"
+              name="password"
+              placeholder="Password"
+              aria-label="Password"
+              required
+              minLength={mode === "signup" ? 6 : undefined}
+              value={form.password}
+              onChange={handleChange}
+            />
+
+            {mode === "login" && (
+              <div className="-mt-2">
+                <Link
+                  href="/forgot-password"
+                  onClick={onClose}
+                  className="text-sm font-bold text-primary underline underline-offset-2"
+                >
+                  Forgot your password?
+                </Link>
               </div>
             )}
-            <div>
-              <label className="mb-1 block text-sm font-medium text-text">Email</label>
-              <input
-                className="input-field"
-                type="email"
-                name="email"
-                required
-                value={form.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-text">Password</label>
-              <PasswordInput
-                name="password"
-                required
-                minLength={mode === "signup" ? 6 : undefined}
-                value={form.password}
-                onChange={handleChange}
-              />
-            </div>
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 
-            <button type="submit" disabled={loading} className="btn-primary px-4 py-2.5 text-sm">
+            <button type="submit" disabled={loading} style={PILL} className="btn-primary px-4 py-3 text-sm">
               {loading ? (mode === "login" ? "Signing in…" : "Creating account…") : mode === "login" ? "Sign In" : "Create Account"}
             </button>
           </form>

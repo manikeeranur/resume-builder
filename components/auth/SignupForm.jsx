@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { IconBrandGoogle } from "@tabler/icons-react";
 import PasswordInput from "@/components/ui/PasswordInput";
+import { stashPendingPassword } from "@/lib/pendingAuthPassword";
 
 // See the matching comment in LoginForm.jsx.
 const PILL = { borderRadius: "9999px" };
@@ -37,6 +38,9 @@ export default function SignupForm({ googleEnabled }) {
       // The account can't sign in yet — emailVerified is false until the
       // code just emailed to them is entered — so this sends them straight
       // to that step instead of attempting a sign-in that would only fail.
+      // Stashing the password lets VerifyEmailForm sign them in right after
+      // verifying, instead of making them type it again immediately.
+      stashPendingPassword(form.email, form.password);
       router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch {
       setError("Network error. Please try again.");

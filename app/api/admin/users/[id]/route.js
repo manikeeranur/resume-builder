@@ -6,6 +6,8 @@ import Subscription from "@/lib/models/Subscription";
 import Profile from "@/lib/models/Profile";
 import PdfDownloadLog from "@/lib/models/PdfDownloadLog";
 import AdminAuditLog from "@/lib/models/AdminAuditLog";
+import Payment from "@/lib/models/Payment";
+import EmailOtp from "@/lib/models/EmailOtp";
 import Template from "@/lib/models/Template";
 import { TEMPLATE_LIST } from "@/lib/templates";
 import { getAdminContactInfo } from "@/lib/adminAvatars";
@@ -158,11 +160,12 @@ export async function PATCH(req, { params }) {
   return NextResponse.json({ _id: user._id, isBlocked: user.isBlocked });
 }
 
-// Cascades to the user's own working data (resumes, subscriptions, profile,
-// download logs). Payment and AdminAuditLog rows are deliberately kept —
-// financial and audit records shouldn't disappear just because the account
-// that generated them did; Payment.userId is left pointing at the now-gone
-// user, same as any ledger keeps a dangling reference after account deletion.
+// Cascades to every place this user's data lives — resumes, subscriptions,
+// profile, download logs, payments, and any outstanding OTP for their
+// email. AdminAuditLog is the one deliberate exception: it's kept (with a
+// now-dangling adminId/targetId) the same way any audit trail outlives the
+// account it's about — deleting it would erase the record of what admin
+// actions were taken and why, which defeats the point of an audit log.
 export async function DELETE(req, { params }) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -184,6 +187,8 @@ export async function DELETE(req, { params }) {
     Subscription.deleteMany({ userId: user._id }),
     Profile.deleteOne({ userId: user._id }),
     PdfDownloadLog.deleteMany({ userId: user._id }),
+    Payment.deleteMany({ userId: user._id }),
+    EmailOtp.deleteMany({ email: user.email }),
   ]);
   await user.deleteOne();
 

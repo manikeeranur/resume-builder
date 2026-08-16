@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { consumePendingPassword } from "@/lib/pendingAuthPassword";
 
 // See the matching comment in LoginForm.jsx.
 const PILL = { borderRadius: "9999px" };
@@ -54,6 +56,22 @@ export default function VerifyEmailForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Verification failed");
+
+      // If the password from the signup (or blocked-login) form that sent
+      // them here is still around, sign them straight in instead of
+      // bouncing them to /login to type it a second time. Falls back to
+      // the old "go sign in" path if it's missing/expired/wrong — e.g. this
+      // page was opened fresh (bookmark, different tab) with no password on
+      // hand, or the stash is stale.
+      const pendingPassword = consumePendingPassword(email);
+      if (pendingPassword) {
+        const signInRes = await signIn("credentials", { redirect: false, email, password: pendingPassword });
+        if (!signInRes?.error) {
+          router.push("/dashboard");
+          router.refresh();
+          return;
+        }
+      }
       router.push("/login?verified=1");
     } catch (err) {
       setError(err.message);

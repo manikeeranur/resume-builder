@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { IconBrandGoogle } from "@tabler/icons-react";
 import PasswordInput from "@/components/ui/PasswordInput";
+import { stashPendingPassword } from "@/lib/pendingAuthPassword";
 
 // Fully-rounded pill shape for inputs/buttons on this page only — applied
 // as inline style rather than a `rounded-full` class because .input-field/
@@ -47,7 +48,15 @@ export default function LoginForm({ googleEnabled }) {
     });
     setLoading(false);
     if (res?.error) {
-      setError(res.error === "EmailNotVerified" ? "EmailNotVerified" : "Invalid email or password");
+      if (res.error === "EmailNotVerified") {
+        // So VerifyEmailForm can sign them straight in once they enter the
+        // code, instead of bouncing them back here to type the password
+        // they just typed a moment ago.
+        stashPendingPassword(form.email, form.password);
+        setError("EmailNotVerified");
+      } else {
+        setError("Invalid email or password");
+      }
       return;
     }
     router.push("/dashboard");
