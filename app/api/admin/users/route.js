@@ -57,7 +57,7 @@ export async function GET(req) {
 
   const [users, total, grandTotal, adminCount] = await Promise.all([
     User.find(filter)
-      .select("name email phone image provider role isBlocked createdAt")
+      .select("name email phone image provider role isBlocked emailVerified createdAt")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit),
@@ -102,6 +102,7 @@ export async function GET(req) {
       provider: u.provider,
       role: u.role,
       isBlocked: u.isBlocked,
+      emailVerified: u.emailVerified,
       createdAt: u.createdAt,
       resumeCount: resumeCountByUser.get(u._id.toString()) || 0,
       downloadCount: downloadCountByUser.get(u._id.toString()) || 0,

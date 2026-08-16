@@ -19,6 +19,7 @@ import {
   Download,
   Mail,
 } from "lucide-react";
+import { IconRosetteDiscountCheckFilled } from "@tabler/icons-react";
 import AvatarImage from "@/components/ui/AvatarImage";
 import CustomTable from "@/components/common/CustomTable";
 import TableSkeleton from "@/components/common/TableSkeleton";
@@ -26,6 +27,18 @@ import ChangePlanModal from "@/components/admin/ChangePlanModal";
 import DeleteUserModal from "@/components/admin/DeleteUserModal";
 import SendEmailModal from "@/components/admin/SendEmailModal";
 import ProfileShowcase from "@/components/profile/ProfileShowcase";
+
+// "30 APR 2026 10:05 PM" — same format as AdminUsersTable's Joined column,
+// so a user's join date reads identically whether seen from the list or
+// this detail page.
+function formatJoined(date) {
+  const d = new Date(date);
+  const day = d.getDate();
+  const month = d.toLocaleString("en-US", { month: "short" }).toUpperCase();
+  const year = d.getFullYear();
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${day} ${month} ${year} ${time}`;
+}
 
 // Flat panel — white bg, no border/shadow, unlike the site-wide `.card`
 // class (which the rest of the admin panel uses). This page intentionally
@@ -388,6 +401,9 @@ export default function AdminUserDetail({ userId }) {
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-lg font-bold text-text">
                     {user.name}
+                    {user.emailVerified && (
+                      <IconRosetteDiscountCheckFilled size={17} className="shrink-0 text-primary" aria-label="Verified" />
+                    )}
                     {isSelf && <span className="text-xs font-normal text-text-secondary">(you)</span>}
                   </p>
                   <p className="text-sm text-text-secondary">{user.email}</p>
@@ -425,7 +441,7 @@ export default function AdminUserDetail({ userId }) {
               <Stat icon={FileText} value={user.resumeCount} label="Resumes" tint={{ bg: "var(--primary-light)", fg: "var(--primary)" }} />
               <Stat icon={Download} value={user.downloads?.total ?? 0} label="PDF downloads" tint={{ bg: "#dcfce7", fg: "#16a34a" }} />
               <Stat icon={Crown} value={user.subscription?.planId?.name || "Free"} label="Current plan" tint={{ bg: "#fef3c7", fg: "#b45309" }} />
-              <Stat icon={Calendar} value={new Date(user.createdAt).toLocaleDateString("en-IN")} label="Joined" tint={{ bg: "#e0f2fe", fg: "#0284c7" }} />
+              <Stat icon={Calendar} value={formatJoined(user.createdAt)} label="Joined" tint={{ bg: "#e0f2fe", fg: "#0284c7" }} />
             </div>
 
             <Panel className="space-y-3">

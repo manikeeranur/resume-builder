@@ -8,6 +8,7 @@ import PdfDownloadLog from "@/lib/models/PdfDownloadLog";
 import AdminAuditLog from "@/lib/models/AdminAuditLog";
 import Payment from "@/lib/models/Payment";
 import EmailOtp from "@/lib/models/EmailOtp";
+import PendingSignup from "@/lib/models/PendingSignup";
 import Template from "@/lib/models/Template";
 import { TEMPLATE_LIST } from "@/lib/templates";
 import { getAdminContactInfo } from "@/lib/adminAvatars";
@@ -24,7 +25,7 @@ export async function GET(req, { params }) {
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await dbConnect();
-  const user = await User.findById(params.id).select("name email phone image provider role isBlocked createdAt");
+  const user = await User.findById(params.id).select("name email phone image provider role isBlocked emailVerified createdAt");
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const [subscription, profile, resumes, downloadLogs, downloadCount, dynamicTemplates] = await Promise.all([
@@ -77,6 +78,7 @@ export async function GET(req, { params }) {
     provider: user.provider,
     role: user.role,
     isBlocked: user.isBlocked,
+    emailVerified: user.emailVerified,
     createdAt: user.createdAt,
     resumeCount: resumes.length,
     subscription,
@@ -189,6 +191,7 @@ export async function DELETE(req, { params }) {
     PdfDownloadLog.deleteMany({ userId: user._id }),
     Payment.deleteMany({ userId: user._id }),
     EmailOtp.deleteMany({ email: user.email }),
+    PendingSignup.deleteOne({ email: user.email }),
   ]);
   await user.deleteOne();
 

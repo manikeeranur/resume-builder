@@ -16,6 +16,7 @@ import {
   Trash2,
   Mail,
 } from "lucide-react";
+import { IconRosetteDiscountCheckFilled } from "@tabler/icons-react";
 import { useSession } from "next-auth/react";
 import StatCard from "@/components/dashboard/StatCard";
 import CrownBadge from "@/components/layout/CrownBadge";
@@ -27,6 +28,17 @@ import DeleteUserModal from "@/components/admin/DeleteUserModal";
 import SendEmailModal from "@/components/admin/SendEmailModal";
 
 const EMPTY_FILTERS = { q: "", role: "", provider: "", planId: "", joinedFrom: "", joinedTo: "" };
+
+// "30 APR 2026 10:05 PM" — day, abbreviated-uppercase month, year, then
+// 12-hour time, all in one glance instead of just a bare date.
+function formatJoined(date) {
+  const d = new Date(date);
+  const day = d.getDate();
+  const month = d.toLocaleString("en-US", { month: "short" }).toUpperCase();
+  const year = d.getFullYear();
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${day} ${month} ${year} ${time}`;
+}
 
 // Same treatment as the navbar's own avatar (components/layout/AvatarMenu.jsx)
 // — ring outline, and a crown for anyone with an active paid plan — so a
@@ -133,8 +145,15 @@ export default function AdminUsersTable() {
           <div className="flex items-center gap-3">
             <Avatar name={u.name} photo={u.photo} isPremium={Boolean(u.plan)} />
             <div className="min-w-0">
-              <Link href={`/admin/users/${u._id}`} className="truncate font-medium text-text hover:text-primary hover:underline">
-                {u.name} {isSelf && <span className="text-xs font-normal text-text-secondary">(you)</span>}
+              <Link
+                href={`/admin/users/${u._id}`}
+                className="inline-flex items-center gap-1 truncate font-medium text-text hover:text-primary hover:underline"
+              >
+                {u.name}
+                {u.emailVerified && (
+                  <IconRosetteDiscountCheckFilled size={15} className="shrink-0 text-primary" aria-label="Verified" />
+                )}
+                {isSelf && <span className="text-xs font-normal text-text-secondary">(you)</span>}
               </Link>
               {u.isBlocked && (
                 <span className="ml-2 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">Blocked</span>
@@ -169,7 +188,7 @@ export default function AdminUsersTable() {
       title: "Joined",
       sortable: true,
       sortValue: (u) => new Date(u.createdAt),
-      render: (u) => <span className="text-text-secondary">{new Date(u.createdAt).toLocaleDateString("en-IN")}</span>,
+      render: (u) => <span className="whitespace-nowrap text-text-secondary">{formatJoined(u.createdAt)}</span>,
     },
     {
       key: "actions",

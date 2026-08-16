@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn, signOut, getSession } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import PasswordInput from "@/components/ui/PasswordInput";
@@ -40,7 +40,13 @@ export default function AdminLoginForm() {
     // re-read after the sign-in completes.
     const session = await getSession();
     if (session?.user?.role !== "admin") {
-      await signOut({ redirect: false });
+      // No signOut() here — this account's own credentials were valid, it
+      // just isn't an admin. The (protected) admin layout already blocks
+      // any non-admin session from every /admin/* route (redirects to
+      // /dashboard), so nothing security-relevant depends on ending the
+      // session; doing so anyway would just have logged someone out of
+      // their perfectly legitimate regular-user session for having tried
+      // (or landed on) this page.
       setError("This account doesn't have admin access.");
       setLoading(false);
       return;
