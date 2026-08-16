@@ -127,20 +127,27 @@ async function handlePaymentCaptured(paymentEntity) {
 
   const user = await User.findById(payment.userId);
   if (user) {
-    sendPaymentSuccessEmail({
-      to: user.email,
-      name: user.name,
-      planName: plan.name,
-      amount: payment.amount,
-      currency: payment.currency,
-      razorpayPaymentId: paymentEntity.id,
-    }).catch(() => {});
-    sendSubscriptionActivatedEmail({
-      to: user.email,
-      name: user.name,
-      planName: plan.name,
-      expiryDate: subscription.expiryDate,
-    }).catch(() => {});
+    // Awaited (both together) — see the matching comment in
+    // app/api/signup/route.js for why an unawaited send can't be trusted to
+    // complete on serverless. This function's own caller already treats a
+    // thrown error here as non-fatal (see the try/catch around handleEvent
+    // in POST above), so awaiting doesn't risk the webhook ack either.
+    await Promise.all([
+      sendPaymentSuccessEmail({
+        to: user.email,
+        name: user.name,
+        planName: plan.name,
+        amount: payment.amount,
+        currency: payment.currency,
+        razorpayPaymentId: paymentEntity.id,
+      }).catch(() => {}),
+      sendSubscriptionActivatedEmail({
+        to: user.email,
+        name: user.name,
+        planName: plan.name,
+        expiryDate: subscription.expiryDate,
+      }).catch(() => {}),
+    ]);
   }
 }
 
@@ -154,9 +161,13 @@ async function handlePaymentFailed(paymentEntity) {
 
   const [user, plan] = await Promise.all([User.findById(payment.userId), Plan.findById(payment.planId)]);
   if (user && plan) {
-    sendPaymentFailureEmail({ to: user.email, name: user.name, planName: plan.name, reason: payment.failureReason }).catch(
-      () => {}
-    );
+    // Awaited — see the matching comment in app/api/signup/route.js.
+    await sendPaymentFailureEmail({
+      to: user.email,
+      name: user.name,
+      planName: plan.name,
+      reason: payment.failureReason,
+    }).catch(() => {});
   }
 }
 
@@ -171,7 +182,8 @@ async function handleRefundUpdate(refundEntity, refundStatus) {
   if (refundStatus === "PROCESSED") {
     const [user, plan] = await Promise.all([User.findById(payment.userId), Plan.findById(payment.planId)]);
     if (user && plan) {
-      sendRefundConfirmationEmail({
+      // Awaited — see the matching comment in app/api/signup/route.js.
+      await sendRefundConfirmationEmail({
         to: user.email,
         name: user.name,
         planName: plan.name,

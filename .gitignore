@@ -8,3 +8,5 @@ npm-debug.log*
 # Regenerated from the DB on every admin template save and before every
 # build — see lib/templateClassScan.js.
 /.tailwind-scan
+.vercel
+.env*

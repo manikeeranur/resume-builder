@@ -25,7 +25,8 @@ export async function POST(req) {
 
   try {
     const otp = await issueOtp({ email, purpose: "signup" });
-    sendSignupOtpEmail({ to: email, name, otp, ttlMinutes: OTP_TTL_MINUTES }).catch(() => {});
+    // Awaited — see the matching comment in app/api/signup/route.js.
+    await sendSignupOtpEmail({ to: email, name, otp, ttlMinutes: OTP_TTL_MINUTES }).catch(() => {});
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: err.code === "COOLDOWN" ? 429 : 500 });
   }

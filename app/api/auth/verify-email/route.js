@@ -51,8 +51,10 @@ export async function POST(req) {
   }
 
   // The account is actually ready to use now — this is where "Welcome"
-  // belongs, not at raw signup (see app/api/signup).
-  sendWelcomeEmail({ to: email, name: user.name }).catch(() => {});
+  // belongs, not at raw signup (see app/api/signup). Awaited — see the
+  // matching comment in app/api/signup/route.js for why (serverless can
+  // freeze the function right after the response returns).
+  await sendWelcomeEmail({ to: email, name: user.name }).catch(() => {});
 
   return NextResponse.json({ success: true });
 }

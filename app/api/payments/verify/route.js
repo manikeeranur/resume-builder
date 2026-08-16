@@ -92,20 +92,27 @@ export async function POST(req) {
 
     const user = await User.findById(payment.userId);
     const response = await buildSuccessResponse(payment);
-    sendPaymentSuccessEmail({
-      to: user.email,
-      name: user.name,
-      planName: plan.name,
-      amount: payment.amount,
-      currency: payment.currency,
-      razorpayPaymentId: razorpay_payment_id,
-    }).catch(() => {});
-    sendSubscriptionActivatedEmail({
-      to: user.email,
-      name: user.name,
-      planName: plan.name,
-      expiryDate: response.subscription.expiryDate,
-    }).catch(() => {});
+    // Awaited (both together) — see the matching comment in
+    // app/api/signup/route.js for why an unawaited send can't be trusted to
+    // complete on serverless. .catch() on each still means a delivery
+    // failure can't fail this response — payment verification already
+    // succeeded by this point regardless of whether the email goes out.
+    await Promise.all([
+      sendPaymentSuccessEmail({
+        to: user.email,
+        name: user.name,
+        planName: plan.name,
+        amount: payment.amount,
+        currency: payment.currency,
+        razorpayPaymentId: razorpay_payment_id,
+      }).catch(() => {}),
+      sendSubscriptionActivatedEmail({
+        to: user.email,
+        name: user.name,
+        planName: plan.name,
+        expiryDate: response.subscription.expiryDate,
+      }).catch(() => {}),
+    ]);
 
     return NextResponse.json(response);
   } catch (err) {

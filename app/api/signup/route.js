@@ -36,9 +36,13 @@ export async function POST(req) {
     );
 
     const otp = await issueOtp({ email: email.toLowerCase(), purpose: "signup" });
-    // Best-effort, same as every other email in the app — a delivery
-    // failure must never fail the signup response itself.
-    sendSignupOtpEmail({ to: email.toLowerCase(), name, otp, ttlMinutes: OTP_TTL_MINUTES }).catch(() => {});
+    // Awaited — on serverless (Vercel) the function's execution can freeze
+    // the instant the response is returned, which would cut off an
+    // unawaited send mid-flight before the SMTP handshake even finishes.
+    // .catch() still swallows a delivery failure so it can never fail the
+    // signup response itself — this only waits for the attempt, not for it
+    // to succeed.
+    await sendSignupOtpEmail({ to: email.toLowerCase(), name, otp, ttlMinutes: OTP_TTL_MINUTES }).catch(() => {});
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

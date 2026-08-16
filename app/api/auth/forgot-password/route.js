@@ -24,7 +24,8 @@ export async function POST(req) {
   if (user && user.provider === "credentials" && !user.isBlocked) {
     try {
       const otp = await issueOtp({ email, purpose: "password-reset" });
-      sendPasswordResetOtpEmail({ to: email, name: user.name, otp, ttlMinutes: OTP_TTL_MINUTES }).catch(() => {});
+      // Awaited — see the matching comment in app/api/signup/route.js.
+      await sendPasswordResetOtpEmail({ to: email, name: user.name, otp, ttlMinutes: OTP_TTL_MINUTES }).catch(() => {});
     } catch {
       // COOLDOWN or any other issuance failure — still respond generically.
     }
