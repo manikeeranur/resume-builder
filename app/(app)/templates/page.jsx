@@ -1,26 +1,19 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import TopBar from "@/components/layout/TopBar";
 import TemplateGalleryGrid from "@/components/templates/TemplateGalleryGrid";
 
 // Open to anonymous visitors — see TemplateGalleryGrid for the local-draft
-// flow used when there's no session. There's no back destination that
-// makes sense for a logged-out visitor (every other page redirects to
-// /login), so the back button only shows once there's a dashboard to
-// return to.
-export default async function TemplatesPage() {
-  const session = await getServerSession(authOptions);
-
+// flow used when there's no session. This lives in the (app) route group,
+// so it always gets the DashboardShell sidebar (see that layout) — its
+// AvatarMenu already has a built-in "Sign in" fallback (opens LoginModal in
+// place) when there's no user, so the same shell works for both anonymous
+// and logged-in visitors instead of switching chrome between them.
+export default function TemplatesPage() {
   return (
-    <>
-      <TopBar
-        backHref={session ? "/dashboard" : undefined}
-        title="Choose a Template"
-        subtitle="Pick a template that fits your style"
-      />
-      <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6">
+      <h1 className="text-2xl font-bold text-text">Choose a Template</h1>
+      <p className="mt-1 text-sm text-text-secondary">Pick a template that fits your style</p>
+      <div className="mt-8">
         <TemplateGalleryGrid />
       </div>
-    </>
+    </div>
   );
 }

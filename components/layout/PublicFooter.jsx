@@ -22,9 +22,9 @@ export default function PublicFooter() {
       <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 md:grid-cols-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
-              R
-            </span>
+            {/* Same mark as the app/admin sidebars (DashboardShell, AdminSidebar) */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="ResumePro" className="h-8 w-8 shrink-0 rounded-lg object-cover" />
             <span className="text-base font-bold text-text">ResumePro</span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-text-secondary">

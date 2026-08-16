@@ -3,13 +3,14 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Plan from "@/lib/models/Plan";
 import User from "@/lib/models/User";
-import TopBar from "@/components/layout/TopBar";
 import PricingPlans from "@/components/pricing/PricingPlans";
 import { getUserPlan } from "@/lib/subscription/get-user-plan";
 
 // Open to anonymous visitors (same as /templates) — plan data, prices and
 // features are all read fresh from the database here; nothing about a plan
-// is ever hardcoded into the client bundle.
+// is ever hardcoded into the client bundle. Lives in the (app) route group
+// — see the matching comment in app/(app)/templates/page.jsx for why that
+// still works fine for anonymous visitors.
 export default async function PricingPage() {
   const session = await getServerSession(authOptions);
 
@@ -30,13 +31,10 @@ export default async function PricingPage() {
   }
 
   return (
-    <>
-      <TopBar
-        backHref={session ? "/dashboard" : undefined}
-        title="Pricing"
-        subtitle="Pick a plan that fits how often you're applying"
-      />
-      <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6">
+      <h1 className="text-2xl font-bold text-text">Pricing</h1>
+      <p className="mt-1 text-sm text-text-secondary">Pick a plan that fits how often you're applying</p>
+      <div className="mt-8">
         <PricingPlans
           plans={JSON.parse(JSON.stringify(plans))}
           currentPlanCode={currentPlanCode}
@@ -44,6 +42,6 @@ export default async function PricingPage() {
           user={user}
         />
       </div>
-    </>
+    </div>
   );
 }
