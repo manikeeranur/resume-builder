@@ -17,12 +17,14 @@ import {
   Trash2,
   MoreVertical,
   Download,
+  Mail,
 } from "lucide-react";
 import AvatarImage from "@/components/ui/AvatarImage";
 import CustomTable from "@/components/common/CustomTable";
 import TableSkeleton from "@/components/common/TableSkeleton";
 import ChangePlanModal from "@/components/admin/ChangePlanModal";
 import DeleteUserModal from "@/components/admin/DeleteUserModal";
+import SendEmailModal from "@/components/admin/SendEmailModal";
 import ProfileShowcase from "@/components/profile/ProfileShowcase";
 
 // Flat panel — white bg, no border/shadow, unlike the site-wide `.card`
@@ -64,7 +66,7 @@ function Avatar({ name, photo }) {
 // Same kebab-menu pattern as AdminUsersTable's RowMenu — kept local here
 // too since the two components' props/actions differ enough that sharing
 // one generic component wouldn't actually save code.
-function ActionsMenu({ user, isSelf, acting, onToggleRole, onToggleBlock, onChangePlan, onDelete }) {
+function ActionsMenu({ user, isSelf, acting, onToggleRole, onToggleBlock, onChangePlan, onSendEmail, onDelete }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -120,6 +122,13 @@ function ActionsMenu({ user, isSelf, acting, onToggleRole, onToggleBlock, onChan
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text hover:bg-bg"
           >
             <Crown size={14} /> Change plan
+          </button>
+          <button
+            type="button"
+            onClick={() => act(onSendEmail)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text hover:bg-bg"
+          >
+            <Mail size={14} /> Send email
           </button>
           <div className="my-1 h-px bg-border" />
           <button
@@ -316,6 +325,7 @@ export default function AdminUserDetail({ userId }) {
   const [error, setError] = useState("");
   const [acting, setActing] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const load = useCallback(() => {
@@ -405,6 +415,7 @@ export default function AdminUserDetail({ userId }) {
                   onToggleRole={() => patch(user.role === "admin" ? "demote" : "promote")}
                   onToggleBlock={() => patch(user.isBlocked ? "unblock" : "block")}
                   onChangePlan={() => setShowPlanModal(true)}
+                  onSendEmail={() => setShowEmailModal(true)}
                   onDelete={() => setShowDeleteModal(true)}
                 />
               </div>
@@ -491,6 +502,8 @@ export default function AdminUserDetail({ userId }) {
           }}
         />
       )}
+
+      {user && showEmailModal && <SendEmailModal user={user} onClose={() => setShowEmailModal(false)} onDone={() => setShowEmailModal(false)} />}
 
       {user && showDeleteModal && (
         <DeleteUserModal

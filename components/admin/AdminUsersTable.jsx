@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Crown,
   Trash2,
+  Mail,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import StatCard from "@/components/dashboard/StatCard";
@@ -23,6 +24,7 @@ import CustomTable from "@/components/common/CustomTable";
 import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
 import ChangePlanModal from "@/components/admin/ChangePlanModal";
 import DeleteUserModal from "@/components/admin/DeleteUserModal";
+import SendEmailModal from "@/components/admin/SendEmailModal";
 
 const EMPTY_FILTERS = { q: "", role: "", provider: "", planId: "", joinedFrom: "", joinedTo: "" };
 
@@ -55,6 +57,7 @@ export default function AdminUsersTable() {
   const [loading, setLoading] = useState(true);
   const [actingOn, setActingOn] = useState(null);
   const [planModalUser, setPlanModalUser] = useState(null);
+  const [emailModalUser, setEmailModalUser] = useState(null);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
   const [plans, setPlans] = useState([]);
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -191,6 +194,7 @@ export default function AdminUsersTable() {
                 onClick: () => patchUser(u, u.isBlocked ? "unblock" : "block"),
               },
               { label: "Change plan", icon: <Crown size={14} />, onClick: () => setPlanModalUser(u) },
+              { label: "Send email", icon: <Mail size={14} />, onClick: () => setEmailModalUser(u) },
               {
                 label: "Delete user",
                 icon: <Trash2 size={14} />,
@@ -311,6 +315,10 @@ export default function AdminUsersTable() {
             load();
           }}
         />
+      )}
+
+      {emailModalUser && (
+        <SendEmailModal user={emailModalUser} onClose={() => setEmailModalUser(null)} onDone={() => setEmailModalUser(null)} />
       )}
 
       {deleteModalUser && (

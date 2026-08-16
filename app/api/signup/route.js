@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function POST(req) {
   try {
@@ -20,6 +21,10 @@ export async function POST(req) {
 
     const passwordHash = await User.hashPassword(password);
     await User.create({ name, email: email.toLowerCase(), passwordHash, provider: "credentials" });
+
+    // Best-effort, same as every other email in the app — a delivery
+    // failure must never fail the signup response itself.
+    sendWelcomeEmail({ to: email.toLowerCase(), name }).catch(() => {});
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

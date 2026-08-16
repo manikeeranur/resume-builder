@@ -53,6 +53,8 @@ export async function PATCH(req, { params }) {
     const base = subscription.expiryDate > new Date() ? subscription.expiryDate : new Date();
     subscription.expiryDate = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
     subscription.status = "ACTIVE";
+    // Same reset as extendUserSubscription — this pushed expiryDate out too.
+    subscription.expiryReminderSentAt = null;
   } else if (body.action === "changePlan") {
     const plan = await Plan.findById(body.planId);
     if (!plan) return NextResponse.json({ error: "Plan not found" }, { status: 404 });
