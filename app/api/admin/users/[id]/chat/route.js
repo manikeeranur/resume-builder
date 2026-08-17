@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
 import ChatMessage from "@/lib/models/ChatMessage";
 import { requireAdmin } from "@/lib/requireAdmin";
+import { sanitizeChatHtml, chatHtmlToPlainText } from "@/lib/sanitizeChatHtml";
 
 const MESSAGE_MAX_LENGTH = 4000;
 
@@ -22,9 +23,12 @@ export async function POST(req, { params }) {
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { message, attachmentUrl, attachmentType, attachmentName } = await req.json().catch(() => ({}));
-  const text = message?.trim() || "";
-  if (!text && !attachmentUrl) return NextResponse.json({ error: "Message is required" }, { status: 400 });
-  if (text.length > MESSAGE_MAX_LENGTH) return NextResponse.json({ error: "Message is too long" }, { status: 400 });
+  // `message` is HTML from the admin's TipTap editor (bold/italic/strike/
+  // code marks only) — sanitize before anything else touches it.
+  const html = sanitizeChatHtml(message || "");
+  const plainText = chatHtmlToPlainText(html);
+  if (!plainText && !attachmentUrl) return NextResponse.json({ error: "Message is required" }, { status: 400 });
+  if (plainText.length > MESSAGE_MAX_LENGTH) return NextResponse.json({ error: "Message is too long" }, { status: 400 });
 
   await dbConnect();
   const user = await User.findById(params.id).select("_id");
@@ -34,7 +38,7 @@ export async function POST(req, { params }) {
     userId: user._id,
     senderRole: "admin",
     senderId: session.user.id,
-    body: text,
+    body: plainText ? html : "",
     attachmentUrl: attachmentUrl || null,
     attachmentType: attachmentType || null,
     attachmentName: attachmentName || null,

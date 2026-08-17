@@ -151,3 +151,14 @@ body {
   background: var(--border);
   border-radius: 999px;
 }
+
+/* TipTap's Placeholder extension renders via this pseudo-element instead of
+   a real placeholder attribute (contentEditable has no such attribute) —
+   used by the admin chat composer in ChatThreadPanel.jsx. */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--text-secondary);
+  pointer-events: none;
+}

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import ChatMessage from "@/lib/models/ChatMessage";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 const MESSAGE_MAX_LENGTH = 4000;
 const HISTORY_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -44,7 +45,10 @@ export async function POST(req) {
     userId: session.user.id,
     senderRole: "user",
     senderId: session.user.id,
-    body: text,
+    // Stored as escaped HTML so it renders correctly alongside admin
+    // replies, which are real HTML from the TipTap editor — see
+    // ChatBubbleList and lib/sanitizeChatHtml.
+    body: escapeHtml(text),
     attachmentUrl: attachmentUrl || null,
     attachmentType: attachmentType || null,
     attachmentName: attachmentName || null,

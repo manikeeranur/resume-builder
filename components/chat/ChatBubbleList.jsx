@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, CheckCheck, FileText } from "lucide-react";
+import { Check, CheckCheck, FileText, Trash2 } from "lucide-react";
+import { sanitizeChatHtml } from "@/lib/sanitizeChatHtml";
 
 function formatTime(date) {
   return new Date(date).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
@@ -58,7 +59,11 @@ function Attachment({ message }) {
 // support brand, not whichever individual admin replied — see
 // lib/models/ChatMessage's "any admin can reply" comment), while on the
 // admin side it's that specific user's own name/photo.
-export default function ChatBubbleList({ messages, outgoingRole, emptyMessage, incomingLabel, incomingPhoto }) {
+// onDeleteMessage is optional — when passed, a trash icon appears on hover
+// over the caller's own outgoing bubbles (ChatThreadPanel passes it so an
+// admin can delete their own replies; ChatWidget doesn't, so users never
+// get a delete affordance on their own messages).
+export default function ChatBubbleList({ messages, outgoingRole, emptyMessage, incomingLabel, incomingPhoto, onDeleteMessage }) {
   if (messages.length === 0) {
     return <p className="px-2 py-8 text-center text-sm text-text-secondary">{emptyMessage}</p>;
   }
@@ -78,7 +83,17 @@ export default function ChatBubbleList({ messages, outgoingRole, emptyMessage, i
                 </span>
               </div>
             )}
-            <div className={`flex items-end gap-2 ${outgoing ? "justify-end" : "justify-start"}`}>
+            <div className={`group flex items-end gap-2 ${outgoing ? "justify-end" : "justify-start"}`}>
+              {outgoing && onDeleteMessage && (
+                <button
+                  type="button"
+                  onClick={() => onDeleteMessage(m._id)}
+                  aria-label="Delete message"
+                  className="mb-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-text-secondary opacity-0 hover:bg-white focus-visible:opacity-100 group-hover:opacity-100"
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
               {!outgoing && (
                 <span className="mb-0.5 flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-light text-[10px] font-bold text-primary">
                   {incomingPhoto ? (
@@ -95,7 +110,15 @@ export default function ChatBubbleList({ messages, outgoingRole, emptyMessage, i
                 }`}
               >
                 {!outgoing && incomingLabel && <p className="mb-0.5 text-[11px] font-semibold text-primary">{incomingLabel}</p>}
-                {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
+                {m.body && (
+                  <div
+                    className="whitespace-pre-wrap break-words [&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em] [&_p]:m-0"
+                    // Body is sanitized server-side on write (see
+                    // lib/sanitizeChatHtml + the chat API routes); sanitizing
+                    // again here is defense in depth, not the only guard.
+                    dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(m.body) }}
+                  />
+                )}
                 <Attachment message={m} />
                 <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-black/45">
                   {formatTime(m.createdAt)}
