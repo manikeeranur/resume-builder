@@ -7,6 +7,7 @@ import User from "@/lib/models/User";
 import WebhookEvent from "@/lib/models/WebhookEvent";
 import { verifyWebhookSignature } from "@/lib/razorpay";
 import { extendUserSubscription } from "@/lib/subscription/extend-subscription";
+import { buildInvoicePdfAttachment } from "@/lib/invoicePdfAttachment";
 import {
   sendPaymentSuccessEmail,
   sendSubscriptionActivatedEmail,
@@ -127,6 +128,15 @@ async function handlePaymentCaptured(paymentEntity) {
 
   const user = await User.findById(payment.userId);
   if (user) {
+    // Best-effort — a PDF generation failure must not block the success
+    // emails from going out at all.
+    const invoiceAttachment = await buildInvoicePdfAttachment(payment._id.toString(), payment.userId.toString()).catch(
+      (err) => {
+        console.error("Invoice PDF generation for email failed:", err.message);
+        return null;
+      }
+    );
+
     // Awaited (both together) — see the matching comment in
     // app/api/signup/route.js for why an unawaited send can't be trusted to
     // complete on serverless. This function's own caller already treats a
@@ -140,6 +150,7 @@ async function handlePaymentCaptured(paymentEntity) {
         amount: payment.amount,
         currency: payment.currency,
         razorpayPaymentId: paymentEntity.id,
+        attachments: invoiceAttachment ? [invoiceAttachment] : undefined,
       }).catch(() => {}),
       sendSubscriptionActivatedEmail({
         to: user.email,

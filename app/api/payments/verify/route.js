@@ -9,6 +9,7 @@ import Subscription from "@/lib/models/Subscription";
 import User from "@/lib/models/User";
 import { verifyPaymentSignature, fetchRazorpayPayment } from "@/lib/razorpay";
 import { extendUserSubscription } from "@/lib/subscription/extend-subscription";
+import { buildInvoicePdfAttachment } from "@/lib/invoicePdfAttachment";
 import { sendPaymentSuccessEmail, sendSubscriptionActivatedEmail } from "@/lib/email";
 
 // The browser callback alone never activates a subscription — this route
@@ -92,6 +93,16 @@ export async function POST(req) {
 
     const user = await User.findById(payment.userId);
     const response = await buildSuccessResponse(payment);
+
+    // Best-effort — a PDF generation failure must not block the success
+    // emails from going out at all.
+    const invoiceAttachment = await buildInvoicePdfAttachment(payment._id.toString(), payment.userId.toString()).catch(
+      (err) => {
+        console.error("Invoice PDF generation for email failed:", err.message);
+        return null;
+      }
+    );
+
     // Awaited (both together) — see the matching comment in
     // app/api/signup/route.js for why an unawaited send can't be trusted to
     // complete on serverless. .catch() on each still means a delivery
@@ -105,6 +116,7 @@ export async function POST(req) {
         amount: payment.amount,
         currency: payment.currency,
         razorpayPaymentId: razorpay_payment_id,
+        attachments: invoiceAttachment ? [invoiceAttachment] : undefined,
       }).catch(() => {}),
       sendSubscriptionActivatedEmail({
         to: user.email,
