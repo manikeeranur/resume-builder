@@ -12,6 +12,11 @@ import { getAdminContactInfo } from "@/lib/adminAvatars";
 import "@/lib/models/Plan";
 import { requireAdmin } from "@/lib/requireAdmin";
 
+// Matches the notification bell's ~30s poll interval (see
+// app/api/notifications, which bumps lastActiveAt) with slack for a couple
+// of missed/slow polls before a user flips to "offline".
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
+
 export async function GET(req) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -24,8 +29,10 @@ export async function GET(req) {
   const planId = searchParams.get("planId");
   const joinedFrom = searchParams.get("joinedFrom");
   const joinedTo = searchParams.get("joinedTo");
+  const onlineOnly = searchParams.get("online") === "true";
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const limit = Math.min(100, Number(searchParams.get("limit")) || 25);
+  const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_MS);
 
   const filter = {};
   if (q) {
@@ -33,6 +40,7 @@ export async function GET(req) {
   }
   if (role) filter.role = role;
   if (provider) filter.provider = provider;
+  if (onlineOnly) filter.lastActiveAt = { $gte: onlineSince };
   if (joinedFrom || joinedTo) {
     filter.createdAt = {};
     if (joinedFrom) filter.createdAt.$gte = new Date(joinedFrom);
@@ -55,9 +63,9 @@ export async function GET(req) {
     }
   }
 
-  const [users, total, grandTotal, adminCount] = await Promise.all([
+  const [users, total, grandTotal, adminCount, onlineCount] = await Promise.all([
     User.find(filter)
-      .select("name email phone image provider role isBlocked emailVerified createdAt")
+      .select("name email phone image provider role isBlocked emailVerified createdAt lastActiveAt")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit),
@@ -66,6 +74,7 @@ export async function GET(req) {
     // independent of whatever search/role filter is currently applied.
     User.countDocuments(),
     User.countDocuments({ role: "admin" }),
+    User.countDocuments({ lastActiveAt: { $gte: onlineSince } }),
   ]);
 
   const userIds = users.map((u) => u._id);
@@ -104,6 +113,7 @@ export async function GET(req) {
       isBlocked: u.isBlocked,
       emailVerified: u.emailVerified,
       createdAt: u.createdAt,
+      online: Boolean(u.lastActiveAt) && Date.now() - new Date(u.lastActiveAt).getTime() < ONLINE_THRESHOLD_MS,
       resumeCount: resumeCountByUser.get(u._id.toString()) || 0,
       downloadCount: downloadCountByUser.get(u._id.toString()) || 0,
       plan: subscription?.planId || null,
@@ -111,5 +121,5 @@ export async function GET(req) {
     };
   });
 
-  return NextResponse.json({ users: result, total, grandTotal, adminCount, page, limit });
+  return NextResponse.json({ users: result, total, grandTotal, adminCount, onlineCount, page, limit });
 }

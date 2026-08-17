@@ -5,6 +5,7 @@ import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { ArrowLeft, LogOut } from "lucide-react";
 import AvatarImage from "@/components/ui/AvatarImage";
+import NotificationBell from "@/components/layout/NotificationBell";
 
 // Mirrors components/layout/TopNavbar.jsx's sticky header for the regular
 // user app, so the admin section has the same top bar the rest of the app
@@ -30,7 +31,8 @@ export default function AdminTopNavbar({ user, avatarUrl }) {
   }, [open]);
 
   return (
-    <div className="sticky top-0 z-10 hidden items-center justify-end border-b border-border bg-white/95 px-6 py-3 backdrop-blur-md md:flex">
+    <div className="sticky top-0 z-10 hidden items-center justify-end gap-2 border-b border-border bg-white/95 px-6 py-3 backdrop-blur-md md:flex">
+      <NotificationBell />
       <div ref={containerRef} className="relative">
         <button
           type="button"

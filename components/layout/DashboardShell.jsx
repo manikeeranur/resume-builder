@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { Menu, X, LayoutGrid, LayoutTemplate, CircleUserRound, FileText, CreditCard, Crown, ShieldCheck } from "lucide-react";
 import UserMenu from "./UserMenu";
 import TopNavbar from "./TopNavbar";
+import NotificationBell from "./NotificationBell";
+import ChatWidget from "./ChatWidget";
 import RailTooltip from "@/components/ui/RailTooltip";
 
 const BASE_NAV_ITEMS = [
@@ -80,14 +82,17 @@ export default function DashboardShell({ user, avatarUrl, isPremium, googleEnabl
       {/* Mobile top bar */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-white px-4 py-3 md:hidden">
         <Logo />
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text"
-        >
-          <Menu size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text"
+          >
+            <Menu size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Mobile drawer */}
@@ -125,6 +130,8 @@ export default function DashboardShell({ user, avatarUrl, isPremium, googleEnabl
         <TopNavbar user={user} avatarUrl={avatarUrl} isPremium={isPremium} googleEnabled={googleEnabled} />
         {children}
       </main>
+
+      <ChatWidget />
     </div>
   );
 }

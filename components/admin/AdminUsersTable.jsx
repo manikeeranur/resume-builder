@@ -15,6 +15,12 @@ import {
   Crown,
   Trash2,
   Mail,
+  Bell,
+  Send,
+  CreditCard,
+  RotateCcw,
+  Circle,
+  MessageCircle,
 } from "lucide-react";
 import { IconRosetteDiscountCheckFilled } from "@tabler/icons-react";
 import { useSession } from "next-auth/react";
@@ -26,8 +32,11 @@ import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
 import ChangePlanModal from "@/components/admin/ChangePlanModal";
 import DeleteUserModal from "@/components/admin/DeleteUserModal";
 import SendEmailModal from "@/components/admin/SendEmailModal";
+import SendNotificationModal from "@/components/admin/SendNotificationModal";
+import BroadcastNotificationModal from "@/components/admin/BroadcastNotificationModal";
+import UserChatModal from "@/components/admin/UserChatModal";
 
-const EMPTY_FILTERS = { q: "", role: "", provider: "", planId: "", joinedFrom: "", joinedTo: "" };
+const EMPTY_FILTERS = { q: "", role: "", provider: "", planId: "", joinedFrom: "", joinedTo: "", online: false };
 
 // "30 APR 2026 10:05 PM" — day, abbreviated-uppercase month, year, then
 // 12-hour time, all in one glance instead of just a bare date.
@@ -43,7 +52,7 @@ function formatJoined(date) {
 // Same treatment as the navbar's own avatar (components/layout/AvatarMenu.jsx)
 // — ring outline, and a crown for anyone with an active paid plan — so a
 // user looks the same here as they do to themselves.
-function Avatar({ name, photo, isPremium }) {
+function Avatar({ name, photo, isPremium, online }) {
   const initial = (name || "?").charAt(0).toUpperCase();
   return (
     <span className="relative flex h-9 w-9 shrink-0">
@@ -52,6 +61,13 @@ function Avatar({ name, photo, isPremium }) {
         <AvatarImage src={photo} alt={name} className="absolute inset-0 h-full w-full object-cover" />
       </span>
       {isPremium && <CrownBadge />}
+      {online && (
+        <span
+          className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500"
+          title="Online"
+          aria-label="Online"
+        />
+      )}
     </span>
   );
 }
@@ -64,12 +80,16 @@ export default function AdminUsersTable() {
   const [total, setTotal] = useState(0);
   const [grandTotal, setGrandTotal] = useState(0);
   const [adminCount, setAdminCount] = useState(0);
+  const [onlineCount, setOnlineCount] = useState(0);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [loading, setLoading] = useState(true);
   const [actingOn, setActingOn] = useState(null);
   const [planModalUser, setPlanModalUser] = useState(null);
   const [emailModalUser, setEmailModalUser] = useState(null);
+  const [notifyModalUser, setNotifyModalUser] = useState(null);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [chatModalUser, setChatModalUser] = useState(null);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
   const [plans, setPlans] = useState([]);
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -98,6 +118,7 @@ export default function AdminUsersTable() {
         setTotal(data.total || 0);
         setGrandTotal(data.grandTotal ?? data.total ?? 0);
         setAdminCount(data.adminCount || 0);
+        setOnlineCount(data.onlineCount || 0);
       })
       .finally(() => setLoading(false));
   }, [filters, page, perPage]);
@@ -128,6 +149,35 @@ export default function AdminUsersTable() {
     }
   };
 
+  // Fixed-template, one-click sends — no compose modal, unlike SendEmailModal/
+  // SendNotificationModal, since the content is the same reminder copy the
+  // cron itself sends (see app/api/cron/subscription-reminders).
+  const sendReminder = async (user, type) => {
+    setActingOn(user._id);
+    try {
+      const res = await fetch(`/api/admin/users/${user._id}/${type}`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send reminder");
+      alert("Reminder sent.");
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setActingOn(null);
+    }
+  };
+
+  const sendBulkReminder = async (type, label) => {
+    if (!confirm(`Send ${label} to every eligible user right now?`)) return;
+    try {
+      const res = await fetch(`/api/admin/notifications/${type}`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send");
+      alert(`Sent to ${data.recipientCount} user(s).`);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const removeUserFromList = (user) => {
     setUsers((prev) => prev.filter((u) => u._id !== user._id));
     setTotal((prev) => prev - 1);
@@ -143,7 +193,7 @@ export default function AdminUsersTable() {
         const isSelf = u._id === session?.user?.id;
         return (
           <div className="flex items-center gap-3">
-            <Avatar name={u.name} photo={u.photo} isPremium={Boolean(u.plan)} />
+            <Avatar name={u.name} photo={u.photo} isPremium={Boolean(u.plan)} online={u.online} />
             <div className="min-w-0">
               <Link
                 href={`/admin/users/${u._id}`}
@@ -214,6 +264,20 @@ export default function AdminUsersTable() {
               },
               { label: "Change plan", icon: <Crown size={14} />, onClick: () => setPlanModalUser(u) },
               { label: "Send email", icon: <Mail size={14} />, onClick: () => setEmailModalUser(u) },
+              { label: "Send notification", icon: <Bell size={14} />, onClick: () => setNotifyModalUser(u) },
+              { label: "Chat", icon: <MessageCircle size={14} />, onClick: () => setChatModalUser(u) },
+              {
+                label: "Send payment reminder",
+                icon: <CreditCard size={14} />,
+                disabled: acting,
+                onClick: () => sendReminder(u, "payment-reminder"),
+              },
+              {
+                label: "Send resubscribe reminder",
+                icon: <RotateCcw size={14} />,
+                disabled: acting,
+                onClick: () => sendReminder(u, "resubscribe-reminder"),
+              },
               {
                 label: "Delete user",
                 icon: <Trash2 size={14} />,
@@ -231,7 +295,34 @@ export default function AdminUsersTable() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="flex flex-wrap justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => sendBulkReminder("payment-reminders", "a payment reminder")}
+          className="btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm"
+        >
+          <CreditCard size={14} />
+          Payment reminder to all
+        </button>
+        <button
+          type="button"
+          onClick={() => sendBulkReminder("resubscribe-reminders", "a resubscribe reminder")}
+          className="btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm"
+        >
+          <RotateCcw size={14} />
+          Resubscribe reminder to all
+        </button>
+        <button
+          type="button"
+          onClick={() => setBroadcastOpen(true)}
+          className="btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm"
+        >
+          <Send size={14} />
+          Notify all users
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
           icon={UsersIcon}
           value={grandTotal}
@@ -245,6 +336,7 @@ export default function AdminUsersTable() {
           label="Regular Users"
           tint={{ bg: "#dcfce7", fg: "#16a34a" }}
         />
+        <StatCard icon={Circle} value={onlineCount} label="Online Now" tint={{ bg: "#dcfce7", fg: "#16a34a" }} />
       </div>
 
       <div className="card grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-6">
@@ -285,6 +377,18 @@ export default function AdminUsersTable() {
           <option value="user">User</option>
           <option value="admin">Admin</option>
         </select>
+        <label className="input-field flex cursor-pointer items-center gap-2 text-sm font-medium text-text-secondary">
+          <input
+            type="checkbox"
+            checked={filters.online}
+            onChange={(e) => setFilters({ ...filters, online: e.target.checked })}
+            className="h-4 w-4 rounded border-border accent-primary"
+          />
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            Online now
+          </span>
+        </label>
         <div className="flex items-center gap-1.5 sm:col-span-2 lg:col-span-2">
           <input
             type="date"
@@ -339,6 +443,20 @@ export default function AdminUsersTable() {
       {emailModalUser && (
         <SendEmailModal user={emailModalUser} onClose={() => setEmailModalUser(null)} onDone={() => setEmailModalUser(null)} />
       )}
+
+      {notifyModalUser && (
+        <SendNotificationModal
+          user={notifyModalUser}
+          onClose={() => setNotifyModalUser(null)}
+          onDone={() => setNotifyModalUser(null)}
+        />
+      )}
+
+      {broadcastOpen && (
+        <BroadcastNotificationModal onClose={() => setBroadcastOpen(false)} onDone={() => setBroadcastOpen(false)} />
+      )}
+
+      {chatModalUser && <UserChatModal user={chatModalUser} onClose={() => setChatModalUser(null)} />}
 
       {deleteModalUser && (
         <DeleteUserModal
