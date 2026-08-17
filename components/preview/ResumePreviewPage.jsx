@@ -9,6 +9,7 @@ import TopBar from "@/components/layout/TopBar";
 import ThemeModal from "@/components/editor/ThemeModal";
 import RippleButton from "@/components/ui/RippleButton";
 import { downloadResumePdf } from "@/lib/downloadResumePdf";
+import { useToast } from "@/components/providers/ToastProvider";
 
 // pdf.js touches browser-only APIs (e.g. DOMMatrix) that don't exist during
 // Next.js's server render, so this must never be rendered on the server.
@@ -19,6 +20,7 @@ const PdfViewer = dynamic(() => import("./PdfViewer"), {
 
 export default function ResumePreviewPage({ resume: initialResume }) {
   const router = useRouter();
+  const toast = useToast();
   const [resume, setResume] = useState(initialResume);
   const [downloading, setDownloading] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
@@ -29,7 +31,7 @@ export default function ResumePreviewPage({ resume: initialResume }) {
     try {
       await downloadResumePdf(resume);
     } catch (err) {
-      alert(err.message || "Failed to download PDF. Please try again.");
+      toast(err.message || "Failed to download PDF. Please try again.", { type: "error" });
     } finally {
       setDownloading(false);
     }

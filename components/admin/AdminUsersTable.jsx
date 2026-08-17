@@ -27,6 +27,7 @@ import { useSession } from "next-auth/react";
 import StatCard from "@/components/dashboard/StatCard";
 import CrownBadge from "@/components/layout/CrownBadge";
 import AvatarImage from "@/components/ui/AvatarImage";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import CustomTable from "@/components/common/CustomTable";
 import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
 import ChangePlanModal from "@/components/admin/ChangePlanModal";
@@ -35,6 +36,7 @@ import SendEmailModal from "@/components/admin/SendEmailModal";
 import SendNotificationModal from "@/components/admin/SendNotificationModal";
 import BroadcastNotificationModal from "@/components/admin/BroadcastNotificationModal";
 import UserChatModal from "@/components/admin/UserChatModal";
+import { useToast } from "@/components/providers/ToastProvider";
 
 const EMPTY_FILTERS = { q: "", role: "", provider: "", planId: "", joinedFrom: "", joinedTo: "", online: false };
 
@@ -75,6 +77,7 @@ function Avatar({ name, photo, isPremium, online }) {
 export default function AdminUsersTable() {
   const { data: session } = useSession();
   const router = useRouter();
+  const toast = useToast();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
@@ -91,6 +94,8 @@ export default function AdminUsersTable() {
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [chatModalUser, setChatModalUser] = useState(null);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
+  const [bulkReminderConfirm, setBulkReminderConfirm] = useState(null);
+  const [bulkReminderLoading, setBulkReminderLoading] = useState(false);
   const [plans, setPlans] = useState([]);
   const totalPages = Math.max(1, Math.ceil(total / perPage));
 
@@ -143,7 +148,7 @@ export default function AdminUsersTable() {
         setAdminCount((prev) => prev + (data.role === "admin" ? 1 : -1));
       }
     } catch (err) {
-      alert(err.message);
+      toast(err.message, { type: "error" });
     } finally {
       setActingOn(null);
     }
@@ -158,23 +163,27 @@ export default function AdminUsersTable() {
       const res = await fetch(`/api/admin/users/${user._id}/${type}`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send reminder");
-      alert("Reminder sent.");
+      toast("Reminder sent.", { type: "success" });
     } catch (err) {
-      alert(err.message);
+      toast(err.message, { type: "error" });
     } finally {
       setActingOn(null);
     }
   };
 
-  const sendBulkReminder = async (type, label) => {
-    if (!confirm(`Send ${label} to every eligible user right now?`)) return;
+  const confirmBulkReminder = async () => {
+    if (!bulkReminderConfirm) return;
+    setBulkReminderLoading(true);
     try {
-      const res = await fetch(`/api/admin/notifications/${type}`, { method: "POST" });
+      const res = await fetch(`/api/admin/notifications/${bulkReminderConfirm.type}`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send");
-      alert(`Sent to ${data.recipientCount} user(s).`);
+      toast(`Sent to ${data.recipientCount} user(s).`, { type: "success" });
     } catch (err) {
-      alert(err.message);
+      toast(err.message, { type: "error" });
+    } finally {
+      setBulkReminderLoading(false);
+      setBulkReminderConfirm(null);
     }
   };
 
@@ -298,7 +307,7 @@ export default function AdminUsersTable() {
       <div className="flex flex-wrap justify-end gap-2">
         <button
           type="button"
-          onClick={() => sendBulkReminder("payment-reminders", "a payment reminder")}
+          onClick={() => setBulkReminderConfirm({ type: "payment-reminders", label: "a payment reminder" })}
           className="btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm"
         >
           <CreditCard size={14} />
@@ -306,7 +315,7 @@ export default function AdminUsersTable() {
         </button>
         <button
           type="button"
-          onClick={() => sendBulkReminder("resubscribe-reminders", "a resubscribe reminder")}
+          onClick={() => setBulkReminderConfirm({ type: "resubscribe-reminders", label: "a resubscribe reminder" })}
           className="btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm"
         >
           <RotateCcw size={14} />
@@ -468,6 +477,16 @@ export default function AdminUsersTable() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(bulkReminderConfirm)}
+        title="Send reminder to all?"
+        message={`Send ${bulkReminderConfirm?.label} to every eligible user right now?`}
+        confirmLabel="Send"
+        loading={bulkReminderLoading}
+        onConfirm={confirmBulkReminder}
+        onCancel={() => setBulkReminderConfirm(null)}
+      />
     </div>
   );
 }

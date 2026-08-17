@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Send, Paperclip } from "lucide-react";
 import { uploadChatAttachment, CHAT_ATTACHMENT_ACCEPT } from "@/lib/chatUpload";
 import ChatBubbleList from "@/components/chat/ChatBubbleList";
+import { useToast } from "@/components/providers/ToastProvider";
 
 const POLL_MS = 15000;
 
@@ -15,6 +16,7 @@ const POLL_MS = 15000;
 // real name — unlike ChatWidget's fixed "ResumePro" label, an admin sees
 // exactly who they're talking to.
 export default function ChatThreadPanel({ userId, partnerName, partnerPhoto }) {
+  const toast = useToast();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
@@ -80,9 +82,9 @@ export default function ChatThreadPanel({ userId, partnerName, partnerPhoto }) {
       });
       const data = await res.json();
       if (res.ok) setMessages((prev) => [...prev, data.message]);
-      else alert(data.error || "Failed to send attachment");
+      else toast(data.error || "Failed to send attachment", { type: "error" });
     } catch (err) {
-      alert(err.message);
+      toast(err.message, { type: "error" });
     } finally {
       setUploading(false);
     }

@@ -40,3 +40,15 @@ export async function PATCH(req) {
   await Notification.updateMany({ userId: session.user.id, read: false }, { $set: { read: true } });
   return NextResponse.json({ ok: true });
 }
+
+// "Clear all" — deletes every notification in this user's own list. A
+// single notification's dismiss lives at /api/notifications/[id]
+// (ownership-scoped there too).
+export async function DELETE() {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  await dbConnect();
+  await Notification.deleteMany({ userId: session.user.id });
+  return NextResponse.json({ ok: true });
+}

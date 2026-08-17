@@ -12,6 +12,7 @@ import { fetchJson } from "@/lib/fetchJson";
 import { NEW_TEMPLATE_BOILERPLATE } from "@/lib/templateBoilerplate";
 import TemplateCodeEditor from "./TemplateCodeEditor";
 import ThumbnailUploader from "./ThumbnailUploader";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -155,6 +156,7 @@ export default function TemplateEditorForm({ templateDocId }) {
   const [savedAt, setSavedAt] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (isNew) return;
@@ -221,7 +223,6 @@ export default function TemplateEditorForm({ templateDocId }) {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete "${form.name}"? This can't be undone.`)) return;
     setDeleteError("");
     setDeleting(true);
     try {
@@ -274,7 +275,7 @@ export default function TemplateEditorForm({ templateDocId }) {
           {!isNew && (
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setDeleteConfirmOpen(true)}
               disabled={deleting}
               className="flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
             >
@@ -386,6 +387,20 @@ export default function TemplateEditorForm({ templateDocId }) {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete template?"
+        message={`Delete "${form.name}"? This can't be undone.`}
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+        onConfirm={() => {
+          setDeleteConfirmOpen(false);
+          handleDelete();
+        }}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
     </div>
   );
 }

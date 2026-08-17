@@ -1,5 +1,6 @@
 import "./globals.css";
 import SessionProvider from "@/components/providers/SessionProvider";
+import { ToastProvider } from "@/components/providers/ToastProvider";
 
 const title = "Resume Pro – Build Professional Resumes That Get Noticed";
 const description =
@@ -28,7 +29,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </SessionProvider>
       </body>
     </html>
   );

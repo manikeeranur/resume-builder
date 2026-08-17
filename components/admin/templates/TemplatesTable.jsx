@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Trash2, Crown, Lock } from "lucide-react";
 import CustomTable from "@/components/common/CustomTable";
 import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { TEMPLATE_LIST } from "@/lib/templates";
 
 // The 6 built-in templates ship as static files (components/templates/
@@ -27,6 +28,7 @@ export default function TemplatesTable() {
   const [templates, setTemplates] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState("");
+  const [deleteConfirmTemplate, setDeleteConfirmTemplate] = useState(null);
 
   const load = useCallback(() => {
     fetch("/api/admin/templates")
@@ -40,7 +42,6 @@ export default function TemplatesTable() {
   }, [load]);
 
   const handleDelete = async (template) => {
-    if (!confirm(`Delete "${template.name}"? This can't be undone.`)) return;
     setError("");
     setDeletingId(template._id);
     try {
@@ -107,7 +108,7 @@ export default function TemplatesTable() {
                 icon: <Trash2 size={14} />,
                 destructive: true,
                 disabled: deletingId === t._id,
-                onClick: () => handleDelete(t),
+                onClick: () => setDeleteConfirmTemplate(t),
               },
             ]}
           />
@@ -127,6 +128,21 @@ export default function TemplatesTable() {
         loading={templates === null}
         emptyMessage="No templates found."
         rowKey="_id"
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteConfirmTemplate)}
+        title="Delete template?"
+        message={`Delete "${deleteConfirmTemplate?.name}"? This can't be undone.`}
+        confirmLabel="Delete"
+        destructive
+        loading={deletingId === deleteConfirmTemplate?._id}
+        onConfirm={() => {
+          const template = deleteConfirmTemplate;
+          setDeleteConfirmTemplate(null);
+          handleDelete(template);
+        }}
+        onCancel={() => setDeleteConfirmTemplate(null)}
       />
     </div>
   );

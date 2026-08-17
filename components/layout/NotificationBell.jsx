@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Bell } from "lucide-react";
+import { Bell, X } from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const POLL_MS = 30000;
 
@@ -24,6 +25,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const containerRef = useRef(null);
 
   const load = useCallback(() => {
@@ -75,6 +77,19 @@ export default function NotificationBell() {
     }).catch(() => {});
   };
 
+  const dismiss = (notification) => {
+    setNotifications((prev) => prev.filter((n) => n._id !== notification._id));
+    if (!notification.read) setUnreadCount((prev) => Math.max(0, prev - 1));
+    fetch(`/api/notifications/${notification._id}`, { method: "DELETE" }).catch(() => {});
+  };
+
+  const clearAll = () => {
+    setNotifications([]);
+    setUnreadCount(0);
+    setClearConfirmOpen(false);
+    fetch("/api/notifications", { method: "DELETE" }).catch(() => {});
+  };
+
   if (!session) return null;
 
   return (
@@ -98,11 +113,22 @@ export default function NotificationBell() {
         <div className="absolute right-0 top-[calc(100%+10px)] z-30 w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-border bg-white shadow-card-lg">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <p className="text-sm font-semibold text-text">Notifications</p>
-            {unreadCount > 0 && (
-              <button type="button" onClick={markAllRead} className="text-xs font-medium text-primary hover:underline">
-                Mark all read
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {unreadCount > 0 && (
+                <button type="button" onClick={markAllRead} className="text-xs font-medium text-primary hover:underline">
+                  Mark all read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setClearConfirmOpen(true)}
+                  className="text-xs font-medium text-text-secondary hover:text-red-600 hover:underline"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="max-h-96 overflow-y-auto">
@@ -110,11 +136,13 @@ export default function NotificationBell() {
               <p className="px-4 py-8 text-center text-sm text-text-secondary">No notifications yet.</p>
             ) : (
               notifications.map((n) => (
-                <button
+                <div
                   key={n._id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => markRead(n)}
-                  className={`flex w-full flex-col items-start gap-0.5 border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-bg ${
+                  onKeyDown={(e) => e.key === "Enter" && markRead(n)}
+                  className={`group relative flex w-full flex-col items-start gap-0.5 border-b border-border px-4 py-3 pr-9 text-left last:border-b-0 hover:bg-bg ${
                     n.read ? "" : "bg-primary-light/40"
                   }`}
                 >
@@ -124,12 +152,32 @@ export default function NotificationBell() {
                   </div>
                   <p className="line-clamp-2 text-xs text-text-secondary">{n.message}</p>
                   <p className="text-[11px] text-text-secondary">{timeAgo(n.createdAt)}</p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismiss(n);
+                    }}
+                    aria-label="Dismiss notification"
+                    className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full text-text-secondary opacity-0 hover:bg-border hover:text-text group-hover:opacity-100"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
               ))
             )}
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={clearConfirmOpen}
+        title="Clear all notifications?"
+        confirmLabel="Clear all"
+        destructive
+        onConfirm={clearAll}
+        onCancel={() => setClearConfirmOpen(false)}
+      />
     </div>
   );
 }

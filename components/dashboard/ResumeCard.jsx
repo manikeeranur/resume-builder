@@ -7,9 +7,11 @@ import { IconEdit, IconTrash } from "@tabler/icons-react";
 import { Eye } from "lucide-react";
 import ExactFirstPagePreview from "@/components/editor/LazyExactFirstPagePreview";
 import { getTemplate } from "@/lib/templates";
+import { useToast } from "@/components/providers/ToastProvider";
 
 export default function ResumeCard({ resume, pdfData }) {
   const router = useRouter();
+  const toast = useToast();
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   // pdfData is null only while a batch parent (ResumeGrid) is still loading
@@ -25,7 +27,7 @@ export default function ResumeCard({ resume, pdfData }) {
       router.refresh();
     } catch {
       setDeleting(false);
-      alert("Failed to delete resume. Please try again.");
+      toast("Failed to delete resume. Please try again.", { type: "error" });
     }
   };
 

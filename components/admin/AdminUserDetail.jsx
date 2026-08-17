@@ -27,6 +27,7 @@ import ChangePlanModal from "@/components/admin/ChangePlanModal";
 import DeleteUserModal from "@/components/admin/DeleteUserModal";
 import SendEmailModal from "@/components/admin/SendEmailModal";
 import ProfileShowcase from "@/components/profile/ProfileShowcase";
+import { useToast } from "@/components/providers/ToastProvider";
 
 // "30 APR 2026 10:05 PM" — same format as AdminUsersTable's Joined column,
 // so a user's join date reads identically whether seen from the list or
@@ -332,6 +333,7 @@ function UserDetailSkeleton() {
 
 export default function AdminUserDetail({ userId }) {
   const { data: session } = useSession();
+  const toast = useToast();
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -369,7 +371,7 @@ export default function AdminUserDetail({ userId }) {
       if (!res.ok) throw new Error(data.error || "Action failed");
       setUser((prev) => ({ ...prev, ...data }));
     } catch (err) {
-      alert(err.message);
+      toast(err.message, { type: "error" });
     } finally {
       setActing(false);
     }

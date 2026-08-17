@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { MessageCircle, X, Send, Paperclip } from "lucide-react";
 import { uploadChatAttachment, CHAT_ATTACHMENT_ACCEPT } from "@/lib/chatUpload";
 import ChatBubbleList from "@/components/chat/ChatBubbleList";
+import { useToast } from "@/components/providers/ToastProvider";
 
 const POLL_MS = 15000;
 
@@ -14,6 +15,7 @@ const POLL_MS = 15000;
 // Vercel serverless.
 export default function ChatWidget() {
   const { data: session } = useSession();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -86,9 +88,9 @@ export default function ChatWidget() {
       });
       const data = await res.json();
       if (res.ok) setMessages((prev) => [...prev, data.message]);
-      else alert(data.error || "Failed to send attachment");
+      else toast(data.error || "Failed to send attachment", { type: "error" });
     } catch (err) {
-      alert(err.message);
+      toast(err.message, { type: "error" });
     } finally {
       setUploading(false);
     }
