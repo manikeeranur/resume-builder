@@ -19,7 +19,10 @@ function formatShortDate(date) {
 }
 
 const styles = {
-  page: { background: "#fff", color: "#1e1b2e", minHeight: "100vh", padding: "32px", fontFamily: "Inter, sans-serif" },
+  // No minHeight here on purpose — forcing it to viewport height (see
+  // renderInvoicePdf.js's 1200px viewport) made the PDF taller than one A4
+  // printable page and spilled a blank second page.
+  page: { background: "#fff", color: "#1e1b2e", padding: "32px", fontFamily: "Inter, sans-serif" },
   sectionLabel: { margin: 0, fontSize: 11, textTransform: "uppercase", color: "#77738a", fontWeight: 700 },
   section: { borderBottom: "1px solid #ebe9f5", padding: "16px 0" },
   name: { margin: "6px 0 0", fontSize: 14, fontWeight: 600 },
