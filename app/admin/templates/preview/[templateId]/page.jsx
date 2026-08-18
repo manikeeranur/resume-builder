@@ -5,6 +5,8 @@ import { sampleResume } from "@/lib/sampleResume";
 import { mergeProfileIntoSample } from "@/lib/mergeProfileIntoSample";
 import dbConnect from "@/lib/db";
 import Profile from "@/lib/models/Profile";
+import Template from "@/lib/models/Template";
+import { generateTailwindPreviewCss } from "@/lib/generateTailwindPreviewCss";
 
 // Deliberately outside the app/admin/(protected) route group — that layout
 // wraps pages in the admin sidebar/chrome, which must NOT show up here: the
@@ -25,8 +27,17 @@ export default async function TemplatePreviewPage({ params, searchParams }) {
   const resume = { ...mergeProfileIntoSample(sampleResume, profile), templateId: params.templateId };
   const draft = searchParams?.draft === "1";
 
+  // Same code this page's ResumeDocument fetches client-side (see
+  // app/api/templates/[templateId]/code) — fetched again here, server-side,
+  // purely to hand its exact class names to Tailwind for an on-demand
+  // compile. See generateTailwindPreviewCss for why that's necessary.
+  const templateDoc = await Template.findOne({ templateId: params.templateId }).select("code draftCode");
+  const source = draft && templateDoc?.draftCode ? templateDoc.draftCode : templateDoc?.code;
+  const previewCss = await generateTailwindPreviewCss(source);
+
   return (
     <div style={{ background: "#fff", minHeight: "100vh" }}>
+      {previewCss && <style dangerouslySetInnerHTML={{ __html: previewCss }} />}
       <ResumeDocument resume={resume} draft={draft} />
     </div>
   );
