@@ -1,7 +1,33 @@
 "use client";
 
-import { Check, CheckCheck, FileText, Trash2 } from "lucide-react";
+import { Check, CheckCheck, Download, FileText, Trash2 } from "lucide-react";
 import { sanitizeChatHtml } from "@/lib/sanitizeChatHtml";
+
+// Attachments live on external CDNs (Cloudinary for uploads, Giphy for
+// GIFs) that don't send Content-Disposition: attachment, so a plain
+// `<a download>` just navigates instead of saving. Fetching as a blob and
+// downloading that works regardless of origin, as long as the CDN allows
+// cross-origin GETs (both do, since their URLs are meant to be embedded).
+async function downloadAttachment(url, filename) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Download failed");
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || "attachment";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    // Cross-origin fetch blocked or network error — fall back to a plain
+    // open so the user can still get to the file via the browser's own
+    // save option, rather than the click doing nothing.
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
 
 function formatTime(date) {
   return new Date(date).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
@@ -24,24 +50,42 @@ function dayLabel(date) {
 
 function Attachment({ message }) {
   if (!message.attachmentUrl) return null;
+  const name = message.attachmentName || "Attachment";
   if (message.attachmentType === "image") {
     return (
-      <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={message.attachmentUrl} alt={message.attachmentName || "Attachment"} className="max-h-48 rounded-lg" />
-      </a>
+      <div className="group/attachment relative mt-1 inline-block">
+        <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={message.attachmentUrl} alt={name} className="max-h-48 rounded-lg" />
+        </a>
+        <button
+          type="button"
+          onClick={() => downloadAttachment(message.attachmentUrl, name)}
+          aria-label="Download attachment"
+          title="Download"
+          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-black/70 focus-visible:opacity-100 group-hover/attachment:opacity-100"
+        >
+          <Download size={13} />
+        </button>
+      </div>
     );
   }
   return (
-    <a
-      href={message.attachmentUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-1 flex items-center gap-1.5 rounded-lg bg-black/10 px-2 py-1.5 text-xs text-[#111b21] underline"
-    >
+    <div className="mt-1 flex items-center gap-1.5 rounded-lg bg-black/10 px-2 py-1.5 text-xs text-[#111b21]">
       <FileText size={13} className="shrink-0" />
-      <span className="truncate">{message.attachmentName || "Attachment"}</span>
-    </a>
+      <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="truncate underline">
+        {name}
+      </a>
+      <button
+        type="button"
+        onClick={() => downloadAttachment(message.attachmentUrl, name)}
+        aria-label="Download attachment"
+        title="Download"
+        className="ml-auto shrink-0 rounded-full p-1 text-[#111b21]/70 hover:bg-black/10 hover:text-[#111b21]"
+      >
+        <Download size={13} />
+      </button>
+    </div>
   );
 }
 
