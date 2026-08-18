@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Check, CheckCheck, Download, FileText, Trash2 } from "lucide-react";
 import { sanitizeChatHtml } from "@/lib/sanitizeChatHtml";
 
@@ -48,9 +49,13 @@ function dayLabel(date) {
   });
 }
 
-function Attachment({ message }) {
+function Attachment({ message, downloaded, onDownloaded }) {
   if (!message.attachmentUrl) return null;
   const name = message.attachmentName || "Attachment";
+  const handleDownload = () => {
+    downloadAttachment(message.attachmentUrl, name);
+    onDownloaded();
+  };
   if (message.attachmentType === "image") {
     return (
       <div className="group/attachment relative mt-1 inline-block">
@@ -60,31 +65,35 @@ function Attachment({ message }) {
         </a>
         <button
           type="button"
-          onClick={() => downloadAttachment(message.attachmentUrl, name)}
+          onClick={handleDownload}
           aria-label="Download attachment"
           title="Download"
           className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-black/70 focus-visible:opacity-100 group-hover/attachment:opacity-100"
         >
           <Download size={13} />
         </button>
+        {downloaded && <p className="mt-0.5 text-right text-[10px] text-black/45">Downloaded</p>}
       </div>
     );
   }
   return (
-    <div className="mt-1 flex items-center gap-1.5 rounded-lg bg-black/10 px-2 py-1.5 text-xs text-[#111b21]">
-      <FileText size={13} className="shrink-0" />
-      <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="truncate underline">
-        {name}
-      </a>
-      <button
-        type="button"
-        onClick={() => downloadAttachment(message.attachmentUrl, name)}
-        aria-label="Download attachment"
-        title="Download"
-        className="ml-auto shrink-0 rounded-full p-1 text-[#111b21]/70 hover:bg-black/10 hover:text-[#111b21]"
-      >
-        <Download size={13} />
-      </button>
+    <div>
+      <div className="mt-1 flex items-center gap-1.5 rounded-lg bg-black/10 px-2 py-1.5 text-xs text-[#111b21]">
+        <FileText size={13} className="shrink-0" />
+        <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="truncate underline">
+          {name}
+        </a>
+        <button
+          type="button"
+          onClick={handleDownload}
+          aria-label="Download attachment"
+          title="Download"
+          className="ml-auto shrink-0 rounded-full p-1 text-[#111b21]/70 hover:bg-black/10 hover:text-[#111b21]"
+        >
+          <Download size={13} />
+        </button>
+      </div>
+      {downloaded && <p className="mt-0.5 text-right text-[10px] text-black/45">Downloaded</p>}
     </div>
   );
 }
@@ -104,10 +113,17 @@ function Attachment({ message }) {
 // lib/models/ChatMessage's "any admin can reply" comment), while on the
 // admin side it's that specific user's own name/photo.
 // onDeleteMessage is optional — when passed, a trash icon appears on hover
-// over the caller's own outgoing bubbles (ChatThreadPanel passes it so an
-// admin can delete their own replies; ChatWidget doesn't, so users never
-// get a delete affordance on their own messages).
+// over the caller's own outgoing bubbles: ChatThreadPanel passes it so an
+// admin can delete their own replies, and ChatWidget passes it so a user
+// can delete their own outgoing messages. Neither side can delete the
+// other's messages — see the DELETE routes' senderRole scoping.
 export default function ChatBubbleList({ messages, outgoingRole, emptyMessage, incomingLabel, incomingPhoto, onDeleteMessage }) {
+  // Tracks which attachments the viewer has hit "download" on this session,
+  // so a "Downloaded" note can appear under the attachment — separate from
+  // the read-receipt checkmarks below, which only ever apply to the
+  // viewer's own outgoing messages.
+  const [downloadedIds, setDownloadedIds] = useState(() => new Set());
+
   if (messages.length === 0) {
     return <p className="px-2 py-8 text-center text-sm text-text-secondary">{emptyMessage}</p>;
   }
@@ -163,7 +179,11 @@ export default function ChatBubbleList({ messages, outgoingRole, emptyMessage, i
                     dangerouslySetInnerHTML={{ __html: sanitizeChatHtml(m.body) }}
                   />
                 )}
-                <Attachment message={m} />
+                <Attachment
+                  message={m}
+                  downloaded={downloadedIds.has(m._id)}
+                  onDownloaded={() => setDownloadedIds((prev) => new Set(prev).add(m._id))}
+                />
                 <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-black/45">
                   {formatTime(m.createdAt)}
                   {outgoing && (m.read ? <CheckCheck size={13} className="text-sky-500" /> : <Check size={13} />)}

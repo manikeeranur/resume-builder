@@ -6,6 +6,7 @@ import { MessageCircle, X, Send, Paperclip } from "lucide-react";
 import { uploadChatAttachment, CHAT_ATTACHMENT_ACCEPT } from "@/lib/chatUpload";
 import ChatBubbleList from "@/components/chat/ChatBubbleList";
 import { useToast } from "@/components/providers/ToastProvider";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const POLL_MS = 15000;
 
@@ -22,6 +23,8 @@ export default function ChatWidget() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -96,6 +99,21 @@ export default function ChatWidget() {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/chat/${deleteTarget}`, { method: "DELETE" });
+      if (res.ok) setMessages((prev) => prev.filter((m) => m._id !== deleteTarget));
+      else toast("Failed to delete message", { type: "error" });
+    } catch {
+      toast("Failed to delete message", { type: "error" });
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   if (!session) return null;
 
   return (
@@ -118,6 +136,7 @@ export default function ChatWidget() {
               emptyMessage="Send a message and an admin will get back to you here."
               incomingLabel="ResumePro"
               incomingPhoto="/logo.png"
+              onDeleteMessage={setDeleteTarget}
             />
           </div>
 
@@ -173,6 +192,17 @@ export default function ChatWidget() {
           </span>
         )}
       </button>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete this message?"
+        message="This removes it for both you and support. This can't be undone."
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

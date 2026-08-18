@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import AvatarImage from "@/components/ui/AvatarImage";
 import CrownBadge from "@/components/layout/CrownBadge";
 import ChatThreadPanel from "./ChatThreadPanel";
+import { chatHtmlToPlainText } from "@/lib/sanitizeChatHtml";
 
 const POLL_MS = 15000;
 
@@ -112,7 +113,7 @@ export default function AdminChatInbox() {
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-xs text-text-secondary">
                       {t.lastSenderRole === "admin" ? "You: " : ""}
-                      {t.lastMessage || "Attachment"}
+                      {chatHtmlToPlainText(t.lastMessage) || "Attachment"}
                     </p>
                     {t.unreadCount > 0 && (
                       <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
