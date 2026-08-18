@@ -100,7 +100,7 @@ export default function Template6({ resume }) {
       id="resume-content"
       className="mx-auto w-[850px] overflow-hidden bg-white text-[#171717]"
       style={{
-        fontFamily: "'Poppins', 'Avenir Next', 'Segoe UI', sans-serif",
+        fontFamily: "var(--resume-font), 'Poppins', 'Avenir Next', 'Segoe UI', sans-serif",
         ...themeVars(themeConfig),
         "--resume-primary": themeConfig?.primaryColor || ACCENT,
       }}

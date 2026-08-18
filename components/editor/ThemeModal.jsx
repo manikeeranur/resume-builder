@@ -6,6 +6,9 @@ import { defaultThemeConfig, THEME_COLORS, THEME_FONTS } from "@/lib/resumeDefau
 import { getTemplate } from "@/lib/templates";
 import { isLocalDraftId, saveLocalDraft } from "@/lib/localResume";
 import ExactFirstPagePreview from "./LazyExactFirstPagePreview";
+import Select from "@/components/ui/Select";
+
+const FONT_OPTIONS = THEME_FONTS.map((f) => ({ value: f, label: f }));
 
 export default function ThemeModal({ resume, onClose, onSaved, isLocal }) {
   const [themeConfig, setThemeConfig] = useState(resume.themeConfig);
@@ -102,17 +105,13 @@ export default function ThemeModal({ resume, onClose, onSaved, isLocal }) {
 
             <div>
               <p className="mb-2 text-sm font-semibold text-text">Font</p>
-              <select
-                className="input-field max-w-xs"
+              <Select
+                className="max-w-xs"
                 value={themeConfig.font}
-                onChange={(e) => update("font", e.target.value)}
-              >
-                {THEME_FONTS.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
+                onChange={(font) => update("font", font)}
+                options={FONT_OPTIONS}
+                getOptionStyle={(opt) => ({ fontFamily: `"${opt.value}"` })}
+              />
             </div>
 
             <div>

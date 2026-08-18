@@ -22,7 +22,7 @@ export default function Template1({ resume }) {
     <div
       id="resume-content"
       className="mx-auto w-[850px] bg-white text-[#4b4b4b]"
-      style={{ fontFamily: "'Space Grotesk', sans-serif", ...themeVars(themeConfig) }}
+      style={{ fontFamily: "var(--resume-font), 'Space Grotesk', sans-serif", ...themeVars(themeConfig) }}
     >
       <div className="flex items-start gap-8">
         {pi.photo && pi.showPhoto !== false && (

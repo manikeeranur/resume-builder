@@ -258,7 +258,7 @@ export default function Template2({ resume }) {
     <div
       id="resume-content"
       className="mx-auto w-[850px] bg-white text-[#4b4b55]"
-      style={{ fontFamily: "Inter, 'Segoe UI', sans-serif", ...themeVars(themeConfig) }}
+      style={{ fontFamily: "var(--resume-font), Inter, 'Segoe UI', sans-serif", ...themeVars(themeConfig) }}
     >
       <div className="flex items-start gap-5">
         {pi.photo && pi.showPhoto !== false && (

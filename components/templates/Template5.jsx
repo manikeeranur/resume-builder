@@ -76,7 +76,7 @@ export default function Template5({ resume }) {
       // at all (that leftover area belongs to the page, not this div).
       className="relative mx-auto w-[850px] overflow-hidden bg-cover bg-top bg-no-repeat text-[#171717] print:min-h-[1201px] print:bg-repeat-y print:[background-size:100%_1201px]"
       style={{
-        fontFamily: "'Poppins', 'Avenir Next', 'Segoe UI', sans-serif",
+        fontFamily: "var(--resume-font), 'Poppins', 'Avenir Next', 'Segoe UI', sans-serif",
         backgroundColor: "#f6f8fd",
         backgroundImage: "url(/templates/bg-template-5.png)",
         ...themeVars(themeConfig),

@@ -6,7 +6,7 @@ import { Check, ChevronDown } from "lucide-react";
 // A shadcn-style Select (rounded trigger + floating listbox with a check
 // mark on the active item), built locally like RippleButton since the app
 // has no Radix/shadcn dependency to reuse.
-export default function Select({ value, onChange, options, className = "" }) {
+export default function Select({ value, onChange, options, className = "", getOptionStyle }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const selected = options.find((o) => o.value === value) || options[0];
@@ -36,7 +36,9 @@ export default function Select({ value, onChange, options, className = "" }) {
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm text-text shadow-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none"
       >
-        <span className="truncate">{selected?.label}</span>
+        <span className="truncate" style={selected && getOptionStyle?.(selected)}>
+          {selected?.label}
+        </span>
         <ChevronDown
           size={15}
           className={`shrink-0 text-text-secondary transition-transform duration-150 ${open ? "rotate-180" : ""}`}
@@ -46,7 +48,7 @@ export default function Select({ value, onChange, options, className = "" }) {
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 top-full z-30 mt-1.5 w-full min-w-[170px] overflow-hidden rounded-xl border border-border bg-white p-1 shadow-card-lg"
+          className="absolute left-0 top-full z-30 mt-1.5 max-h-64 w-full min-w-[170px] overflow-y-auto rounded-xl border border-border bg-white p-1 shadow-card-lg"
         >
           {options.map((opt) => {
             const isSelected = opt.value === value;
@@ -64,7 +66,9 @@ export default function Select({ value, onChange, options, className = "" }) {
                   isSelected ? "bg-primary-light font-medium text-primary" : "text-text hover:bg-bg"
                 }`}
               >
-                <span className="truncate">{opt.label}</span>
+                <span className="truncate" style={getOptionStyle?.(opt)}>
+                  {opt.label}
+                </span>
                 {isSelected && <Check size={15} className="shrink-0" />}
               </button>
             );

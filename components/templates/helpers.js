@@ -47,7 +47,7 @@ export function themeVars(themeConfig) {
   const scale = SPACING_SCALE[themeConfig?.spacing] || SPACING_SCALE.comfortable;
   return {
     "--resume-primary": themeConfig?.primaryColor || "#6d5ce8",
-    "--resume-font": themeConfig?.font || "Poppins",
+    "--resume-font": `"${themeConfig?.font || "Poppins"}"`,
     "--resume-section-gap": scale.section,
     "--resume-block-gap": scale.block,
     "--resume-text": scale.text,
