@@ -85,13 +85,17 @@ export default function ChatThreadPanel({ userId, partnerName, partnerPhoto }) {
 
   const load = useCallback(() => {
     fetch(`/api/admin/users/${userId}/chat`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data) setMessages(data.messages || []);
+      .then((r) => {
+        if (!r.ok) throw new Error(`Failed to load messages (${r.status})`);
+        return r.json();
       })
-      .catch(() => {})
+      .then((data) => setMessages(data.messages || []))
+      .catch((err) => {
+        console.error("ChatThreadPanel load failed:", err);
+        toast(err.message || "Failed to load messages", { type: "error" });
+      })
       .finally(() => setLoading(false));
-  }, [userId]);
+  }, [userId, toast]);
 
   useEffect(() => {
     setLoading(true);

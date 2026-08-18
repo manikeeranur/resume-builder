@@ -48,15 +48,23 @@ function timeAgo(date) {
 export default function AdminChatInbox() {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
 
   const load = useCallback(() => {
     fetch("/api/admin/chats")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data) setThreads(data.threads || []);
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`Failed to load chats (${r.status})`);
+        return r.json();
       })
-      .catch(() => {})
+      .then((data) => {
+        setError(null);
+        setThreads(data?.threads || []);
+      })
+      .catch((err) => {
+        console.error("AdminChatInbox load failed:", err);
+        setError(err.message || "Failed to load chats");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -79,6 +87,8 @@ export default function AdminChatInbox() {
       <div className="flex flex-col overflow-y-auto border-b border-border md:border-b-0 md:border-r">
         {loading ? (
           <p className="p-4 text-sm text-text-secondary">Loading…</p>
+        ) : error ? (
+          <p className="p-4 text-sm text-red-600">{error}</p>
         ) : threads.length === 0 ? (
           <p className="p-4 text-sm text-text-secondary">No conversations yet.</p>
         ) : (
