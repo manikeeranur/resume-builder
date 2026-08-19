@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye } from "lucide-react";
@@ -25,6 +25,26 @@ export default function ResumePreviewPage({ resume: initialResume }) {
   const [downloading, setDownloading] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
   const [pdfVersion, setPdfVersion] = useState(0);
+  const wrapperRef = useRef(null);
+  const [wrapperHeight, setWrapperHeight] = useState(null);
+
+  // This page is rendered below the dashboard shell's own sticky
+  // TopNavbar, which reserves real space in normal flow above it — so a
+  // flat `h-screen` here overshoots the actually-visible viewport by
+  // that header's height, leaving the bottom of the page (and anything
+  // pinned there, like PdfViewer's pagination bar) unreachable without an
+  // extra outer-page scroll. Measuring the real gap directly is robust to
+  // that header's height changing (e.g. across breakpoints) without this
+  // page needing to know its size.
+  useEffect(() => {
+    const measure = () => {
+      if (!wrapperRef.current) return;
+      setWrapperHeight(window.innerHeight - wrapperRef.current.getBoundingClientRect().top);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -42,34 +62,42 @@ export default function ResumePreviewPage({ resume: initialResume }) {
       <RippleButton
         type="button"
         onClick={() => setThemeModalOpen(true)}
-        className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
+        aria-label="Theme"
+        className="btn-secondary flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
         style={{ borderRadius: "9999px" }}
       >
         <IconPalette size={16} stroke={2} />
-        Theme
+        <span className="hidden sm:inline">Theme</span>
       </RippleButton>
 
       <RippleButton
         type="button"
         onClick={handleDownload}
         disabled={downloading}
-        className="btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs sm:px-4 sm:text-sm"
+        aria-label={downloading ? "Downloading…" : "Download"}
+        className="btn-secondary flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
         style={{ borderRadius: "9999px" }}
       >
         <IconDownload size={16} stroke={1.75} />
-        {downloading ? "Downloading…" : "Download"}
+        <span className="hidden sm:inline">{downloading ? "Downloading…" : "Download"}</span>
       </RippleButton>
     </>
   );
 
   return (
-    <div className="flex h-screen flex-col">
+    <div ref={wrapperRef} className="flex h-screen flex-col" style={wrapperHeight ? { height: wrapperHeight } : undefined}>
       {/* Large screens: the same native TopBar the editor uses, so
           Edit ↔ Preview doesn't feel like two different apps. Small
           screens keep this page's own richer header (icon badge, pill
           buttons) below — there's less width to share there, so the
-          compact shared bar isn't worth the consistency trade-off. */}
-      <div className="sticky top-0 z-20 hidden lg:block">
+          compact shared bar isn't worth the consistency trade-off.
+          Neither needs `sticky`: this component's only scrolling region
+          is the PDF viewer below, so the header is already always
+          visible as a plain flex item above it. Making it sticky too
+          would fight the dashboard shell's own sticky TopNavbar above it
+          for the same top:0 spot the moment the outer page scrolls even
+          a pixel. */}
+      <div className="hidden lg:block">
         <TopBar
           onBack={() => router.back()}
           title={resume.title || "Resume Preview"}
@@ -79,7 +107,7 @@ export default function ResumePreviewPage({ resume: initialResume }) {
         </TopBar>
       </div>
 
-      <div className="sticky top-0 z-20 border-b border-border bg-white/95 shadow-sm backdrop-blur-md lg:hidden">
+      <div className="border-b border-border bg-white/95 shadow-sm backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button

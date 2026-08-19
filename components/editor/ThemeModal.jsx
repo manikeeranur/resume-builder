@@ -113,49 +113,6 @@ export default function ThemeModal({ resume, onClose, onSaved, isLocal }) {
                 getOptionStyle={(opt) => ({ fontFamily: `"${opt.value}"` })}
               />
             </div>
-
-            <div>
-              <p className="mb-2 text-sm font-semibold text-text">Layout</p>
-              <div className="flex gap-3">
-                {[
-                  { value: "single", label: "Single Column" },
-                  { value: "two-column", label: "Two Column" },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => update("layout", opt.value)}
-                    className={`rounded-xl border px-4 py-2 text-sm font-medium ${
-                      themeConfig.layout === opt.value
-                        ? "border-primary bg-primary-light text-primary"
-                        : "border-border text-text-secondary"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-2 text-sm font-semibold text-text">Spacing</p>
-              <div className="flex gap-3">
-                {["compact", "comfortable", "spacious"].map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => update("spacing", opt)}
-                    className={`rounded-xl border px-4 py-2 text-sm font-medium capitalize ${
-                      themeConfig.spacing === opt
-                        ? "border-primary bg-primary-light text-primary"
-                        : "border-border text-text-secondary"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           <div>

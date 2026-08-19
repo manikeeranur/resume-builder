@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { getTemplate } from "@/lib/templates";
@@ -11,7 +12,20 @@ import { getTemplate } from "@/lib/templates";
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const MAX_PAGE_WIDTH_PX = 820;
-const THUMB_WIDTH_PX = 92;
+const PAGE_GAP_PX = 24;
+const PAGINATION_BAR_HEIGHT_PX = 56;
+// Every resume PDF is rendered at a fixed A4 size (see lib/renderResumePdf.js),
+// so this ratio is known ahead of time and can be used to fit a page to the
+// available height without waiting on pdf.js to report real page dimensions.
+const PAGE_ASPECT_RATIO = 210 / 297;
+const LARGE_SCREEN_QUERY = "(min-width: 1024px)";
+// react-pdf renders its canvas at `width * devicePixelRatio` physical
+// pixels, so on a standard (non-Retina) display — devicePixelRatio 1 — it
+// only ever renders exactly as many pixels as the page is shown at,
+// leaving no headroom and reading soft/blurry, especially for small body
+// text. Flooring this at 2 forces that headroom everywhere, not just on
+// high-DPI screens.
+const MIN_RENDER_SCALE = 2;
 
 // Shown in place of the real PDF while it's still generating: a small,
 // centered box with the static template preview image faintly showing
@@ -39,67 +53,85 @@ function GhostPreview({ resume }) {
 export default function PdfViewer({ resume }) {
   const [numPages, setNumPages] = useState(null);
   const [pageWidth, setPageWidth] = useState(MAX_PAGE_WIDTH_PX);
-  const [activePage, setActivePage] = useState(0);
-  const containerRef = useRef(null);
-  const pageRefs = useRef([]);
+  const [windowStart, setWindowStart] = useState(0);
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
+  const [containerNode, setContainerNode] = useState(null);
 
   useEffect(() => {
+    const mql = window.matchMedia(LARGE_SCREEN_QUERY);
+    setIsLargeScreen(mql.matches);
+    const onChange = (e) => setIsLargeScreen(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  // Large screens have room to show two pages side by side; small screens
+  // only ever show one. Either way, once there's more page content than
+  // fits in that window, it becomes a sliding window moved one page at a
+  // time by the Prev/Next bar below — otherwise everything's already on
+  // screen, so no controls are needed.
+  const windowSize = isLargeScreen && numPages >= 2 ? 2 : 1;
+  const paginated = numPages > windowSize;
+  const maxWindowStart = Math.max(0, (numPages || 0) - windowSize);
+
+  // The scrollable container only mounts once the PDF finishes loading
+  // (GhostPreview stands in for it until then), so a plain mount-time
+  // measurement would run against a still-null ref. Watching the node
+  // itself with ResizeObserver (state, not just a ref, so this effect
+  // re-runs once it actually appears) catches both that first paint and
+  // any later resize.
+  useEffect(() => {
+    if (!containerNode) return;
     const measure = () => {
-      if (!containerRef.current) return;
       // Rounded to a whole pixel: react-pdf renders a canvas at exactly
       // this width, and a fractional canvas width (offsetWidth can be
       // subpixel in modern browsers) has caused visible rendering seams
       // for some PDFs.
-      setPageWidth(Math.floor(Math.min(MAX_PAGE_WIDTH_PX, containerRef.current.offsetWidth - 32)));
+      const availableWidth = containerNode.offsetWidth - 32;
+      let width = Math.min(MAX_PAGE_WIDTH_PX, availableWidth);
+      // Large screens: also fit the page(s) within the visible height so
+      // they read without scrolling, instead of only capping width. A
+      // two-page spread additionally has to fit side by side, so each page
+      // gets at most half the available width. The Prev/Next bar (when
+      // shown) is sticky *inside* this same scroll container, so its
+      // height has to come out of the same budget rather than being able
+      // to shrink this container automatically via flexbox. Small screens
+      // keep the page at natural height (no height-fit), scrolling within
+      // it if it's taller than the viewport.
+      if (isLargeScreen) {
+        const chrome = 48 + (paginated ? PAGINATION_BAR_HEIGHT_PX : 0);
+        const heightFitWidth = (containerNode.offsetHeight - chrome) * PAGE_ASPECT_RATIO;
+        const widthBudget = windowSize === 2 ? (availableWidth - PAGE_GAP_PX) / 2 : availableWidth;
+        width = Math.min(MAX_PAGE_WIDTH_PX, widthBudget, heightFitWidth);
+      }
+      setPageWidth(Math.floor(Math.max(width, 0)));
     };
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
+    const observer = new ResizeObserver(measure);
+    observer.observe(containerNode);
+    return () => observer.disconnect();
+  }, [containerNode, isLargeScreen, windowSize, paginated]);
 
-  // Keep the thumbnail rail in sync when the user scrolls the main view by
-  // hand, not just when they click a thumbnail: whichever page's top has
-  // scrolled past the container's top edge (with a little headroom) is
-  // treated as the active one.
+  // Page count changing under a stale windowStart (e.g. switching between
+  // a wide and narrow screen mid-session changes windowSize) could leave
+  // it past the new max; clamp whenever the bound itself moves.
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !numPages || numPages < 2) return;
-    let ticking = false;
-    const updateActivePage = () => {
-      ticking = false;
-      const containerTop = container.getBoundingClientRect().top;
-      let current = 0;
-      for (let i = 0; i < pageRefs.current.length; i++) {
-        const el = pageRefs.current[i];
-        if (!el) continue;
-        if (el.getBoundingClientRect().top - containerTop <= 120) {
-          current = i;
-        }
-      }
-      setActivePage(current);
-    };
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(updateActivePage);
-    };
-    updateActivePage();
-    container.addEventListener("scroll", onScroll, { passive: true });
-    return () => container.removeEventListener("scroll", onScroll);
-  }, [numPages]);
+    setWindowStart((w) => Math.min(w, maxWindowStart));
+  }, [maxWindowStart]);
 
-  const jumpToPage = (i) => {
-    setActivePage(i);
-    pageRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const goToPrevPage = () => setWindowStart((w) => Math.max(0, w - 1));
+  const goToNextPage = () => setWindowStart((w) => Math.min(maxWindowStart, w + 1));
+
+  const visiblePageNumbers =
+    windowSize === 2 ? [windowStart + 1, windowStart + 2] : [windowStart + 1];
+  const renderScale =
+    typeof window !== "undefined" ? Math.max(window.devicePixelRatio || 1, MIN_RENDER_SCALE) : MIN_RENDER_SCALE;
 
   return (
     // Renders the exact same PDF the download button produces, drawn onto
     // our own canvases instead of the browser's native (and
     // theme-following) PDF viewer, so the surrounding chrome always stays
-    // light regardless of system dark mode. Both the thumbnail rail and the
-    // main pages below read from this single <Document>, so react-pdf
-    // parses/loads the PDF only once and reuses it for every <Page>.
+    // light regardless of system dark mode.
     <Document
       key={resume._id}
       file={`/api/resumes/${resume._id}/pdf`}
@@ -108,47 +140,54 @@ export default function PdfViewer({ resume }) {
       error={<p className="py-12 text-center text-sm text-red-500">Couldn't load the PDF preview.</p>}
       className="flex h-full items-stretch justify-center"
     >
-      {numPages > 1 && (
-        <div className="hidden h-full w-28 shrink-0 overflow-y-auto border-r border-border bg-white px-3 py-4 lg:block">
-          <div className="flex flex-col items-center gap-4">
-            {Array.from({ length: numPages }, (_, i) => (
-              <button key={i} type="button" onClick={() => jumpToPage(i)} className="flex flex-col items-center gap-1.5">
-                <div
-                  className={`overflow-hidden rounded shadow transition-all ${
-                    activePage === i ? "ring-2 ring-primary" : "ring-1 ring-border hover:ring-primary/50"
-                  }`}
-                >
-                  <Page
-                    pageNumber={i + 1}
-                    width={THUMB_WIDTH_PX}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                  />
+      <div ref={setContainerNode} className="min-h-0 flex-1 overflow-y-auto bg-bg">
+        <div className={isLargeScreen ? "flex h-full flex-col" : "flex flex-col"}>
+          <div
+            className={
+              isLargeScreen
+                ? "flex flex-1 items-center justify-center gap-6 py-6"
+                : "flex flex-col items-center gap-6 py-6"
+            }
+          >
+            {numPages &&
+              visiblePageNumbers.map((pageNum) => (
+                <div key={pageNum} className="bg-white shadow-lg">
+                  <Page pageNumber={pageNum} width={pageWidth} devicePixelRatio={renderScale} />
                 </div>
-                <span
-                  className={`text-[11px] font-semibold ${activePage === i ? "text-primary" : "text-text-secondary"}`}
-                >
-                  {i + 1}
-                </span>
-              </button>
-            ))}
+              ))}
           </div>
-        </div>
-      )}
 
-      <div ref={containerRef} className="min-w-0 flex-1 overflow-y-auto bg-bg">
-        <div className="flex flex-col items-center gap-6 py-6">
-          {numPages &&
-            Array.from({ length: numPages }, (_, i) => (
-              <div key={i} ref={(el) => (pageRefs.current[i] = el)} className="flex flex-col items-center gap-1.5">
-                <div className="bg-white shadow-lg">
-                  <Page pageNumber={i + 1} width={pageWidth} />
-                </div>
-                <span className="text-[11px] font-medium text-text-secondary">
-                  Page {i + 1} of {numPages}
-                </span>
-              </div>
-            ))}
+          {/* Sticky *inside* the scroll container (not a flex sibling of
+              it) so it stays reachable even if this container's own
+              height ever falls short of the page(s) above it — it sticks
+              to the bottom of whatever's actually visible on screen. */}
+          {paginated && (
+            <div className="sticky bottom-0 flex shrink-0 items-center justify-center gap-4 border-t border-border bg-white py-3">
+              <button
+                type="button"
+                onClick={goToPrevPage}
+                disabled={windowStart === 0}
+                aria-label="Previous page"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-secondary transition-colors hover:border-primary hover:text-primary disabled:pointer-events-none disabled:opacity-40"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-xs font-semibold text-text-secondary">
+                {windowSize === 2
+                  ? `Page ${windowStart + 1}–${windowStart + 2} of ${numPages}`
+                  : `Page ${windowStart + 1} of ${numPages}`}
+              </span>
+              <button
+                type="button"
+                onClick={goToNextPage}
+                disabled={windowStart === maxWindowStart}
+                aria-label="Next page"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-secondary transition-colors hover:border-primary hover:text-primary disabled:pointer-events-none disabled:opacity-40"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </Document>
