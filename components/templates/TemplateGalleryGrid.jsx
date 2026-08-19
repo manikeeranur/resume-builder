@@ -47,7 +47,7 @@ export default function TemplateGalleryGrid() {
     if (status === "unauthenticated") {
       const draft = {
         _id: createLocalDraftId(),
-        title: `${template.name} Resume`,
+        title: template.name,
         templateId: template.id,
         themeConfig: template.defaultColor
           ? { ...defaultThemeConfig, primaryColor: template.defaultColor }
@@ -63,7 +63,7 @@ export default function TemplateGalleryGrid() {
       const res = await fetch("/api/resumes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: template.id, title: `${template.name} Resume` }),
+        body: JSON.stringify({ templateId: template.id, title: template.name }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create resume", { cause: data.code });

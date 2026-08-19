@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import { getTemplate } from "@/lib/templates";
+import { useTemplateMetaList, resolveTemplateMeta } from "@/lib/useTemplateMetaList";
 
 // Loaded from CDN (matching the bundled pdfjs-dist version) since pdf.js
 // needs its parsing/rendering work to run off the main thread.
@@ -26,6 +26,18 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 export default function ExactFirstPagePreview({ resume, pdfData }) {
   const containerRef = useRef(null);
   const [width, setWidth] = useState(280);
+  const templates = useTemplateMetaList();
+  const template = resolveTemplateMeta(templates, resume.templateId);
+  // pdf.js transfers/detaches the underlying ArrayBuffer into its worker on
+  // first use, so a fresh `{ data: pdfData }` object literal on every
+  // render — same `pdfData`, new identity — makes <Document> re-process
+  // the file and try to re-transfer that now-detached buffer, throwing.
+  // Memoizing keeps the identity stable across renders this prop didn't
+  // actually change for (e.g. the template list resolving above).
+  const file = useMemo(
+    () => (pdfData ? { data: pdfData } : `/api/resumes/${resume._id}/pdf`),
+    [pdfData, resume._id]
+  );
 
   useEffect(() => {
     const measure = () => {
@@ -44,13 +56,17 @@ export default function ExactFirstPagePreview({ resume, pdfData }) {
     <div className="relative flex aspect-[210/297] items-center justify-center overflow-hidden bg-bg">
       {/* Static template preview image (same one used in the template
           gallery), so the wait shows an approximate layout instead of
-          a blank box — cheaper than live-rendering the real content. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={getTemplate(resume.templateId).thumbnail}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover object-top opacity-25"
-      />
+          a blank box — cheaper than live-rendering the real content.
+          Admin-created templates without one of their own just skip the
+          image rather than falling back to some other template's. */}
+      {template.thumbnail && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={template.thumbnail}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-top opacity-25"
+        />
+      )}
       <span className="relative flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-text-secondary shadow-card-lg">
         <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
         Generating preview…
@@ -62,12 +78,10 @@ export default function ExactFirstPagePreview({ resume, pdfData }) {
   // should still look like a resume, not show a broken-state notice.
   const error = (
     <div className="aspect-[210/297] overflow-hidden bg-bg">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={getTemplate(resume.templateId).thumbnail}
-        alt=""
-        className="h-full w-full object-cover object-top"
-      />
+      {template.thumbnail && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={template.thumbnail} alt="" className="h-full w-full object-cover object-top" />
+      )}
     </div>
   );
 
@@ -76,11 +90,7 @@ export default function ExactFirstPagePreview({ resume, pdfData }) {
 
   return (
     <div ref={containerRef} className="w-full overflow-hidden rounded-lg">
-      <Document
-        file={pdfData ? { data: pdfData } : `/api/resumes/${resume._id}/pdf`}
-        loading={loading}
-        error={error}
-      >
+      <Document file={file} loading={loading} error={error}>
         <Page pageNumber={1} width={width} />
       </Document>
     </div>

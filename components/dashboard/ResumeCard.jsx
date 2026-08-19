@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 import { Eye } from "lucide-react";
 import ExactFirstPagePreview from "@/components/editor/LazyExactFirstPagePreview";
-import { getTemplate } from "@/lib/templates";
+import { useTemplateMetaList, resolveTemplateMeta } from "@/lib/useTemplateMetaList";
 import { useToast } from "@/components/providers/ToastProvider";
 
 export default function ResumeCard({ resume, pdfData }) {
@@ -14,6 +14,8 @@ export default function ResumeCard({ resume, pdfData }) {
   const toast = useToast();
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const templates = useTemplateMetaList();
+  const template = resolveTemplateMeta(templates, resume.templateId);
   // pdfData is null only while a batch parent (ResumeGrid) is still loading
   // this card's preview — see ExactFirstPagePreview for the full contract.
   const previewLoading = pdfData === null;
@@ -67,8 +69,9 @@ export default function ResumeCard({ resume, pdfData }) {
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div>
           <p className="truncate font-semibold text-text">{resume.title}</p>
+          <p className="text-xs text-text-secondary">{template.name}</p>
           <p className="text-xs text-text-secondary">
-            {getTemplate(resume.templateId).name} · Created{" "}
+            Created{" "}
             {new Date(resume.createdAt).toLocaleDateString("en-US", {
               year: "numeric",
               month: "short",
