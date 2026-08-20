@@ -55,6 +55,7 @@ export async function POST(req) {
     templateId,
     code,
     thumbnail: body.thumbnail || "",
+    category: body.category || undefined,
     premium: Boolean(body.premium),
     defaultColor: body.defaultColor || "",
     fullBleed: Boolean(body.fullBleed),

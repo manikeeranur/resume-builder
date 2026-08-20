@@ -8,7 +8,8 @@ import dbConnect from "@/lib/db";
 import Resume from "@/lib/models/Resume";
 import ResumeGrid from "@/components/dashboard/ResumeGrid";
 import ResumesFilterBar from "@/components/dashboard/ResumesFilterBar";
-import { TEMPLATE_LIST } from "@/lib/templates";
+import { TEMPLATE_CATEGORIES } from "@/lib/templates";
+import { getMergedTemplateList } from "@/lib/templatesServer";
 
 const PAGE_SIZE = 4;
 
@@ -18,10 +19,17 @@ export default async function ResumesPage({ searchParams }) {
 
   const page = Math.max(1, parseInt(searchParams?.page, 10) || 1);
   const sort = searchParams?.sort === "oldest" ? "oldest" : "newest";
-  const template = TEMPLATE_LIST.some((t) => t.id === searchParams?.template) ? searchParams.template : "all";
+  const category = TEMPLATE_CATEGORIES.includes(searchParams?.category) ? searchParams.category : "all";
 
   const query = { userId: session.user.id };
-  if (template !== "all") query.templateId = template;
+  if (category !== "all") {
+    // Category lives on the template (built-in + override, or a dynamic
+    // Template doc — see getMergedTemplateList), not on the Resume itself,
+    // so resolve it to the set of matching template ids first.
+    const allTemplates = await getMergedTemplateList();
+    const idsInCategory = allTemplates.filter((t) => t.category === category).map((t) => t.id);
+    query.templateId = { $in: idsInCategory };
+  }
 
   await dbConnect();
   const [resumes, total] = await Promise.all([
@@ -37,7 +45,7 @@ export default async function ResumesPage({ searchParams }) {
   const pageHref = (p) => {
     const params = new URLSearchParams();
     if (sort !== "newest") params.set("sort", sort);
-    if (template !== "all") params.set("template", template);
+    if (category !== "all") params.set("category", category);
     params.set("page", String(p));
     return `/resumes?${params.toString()}`;
   };
@@ -64,10 +72,10 @@ export default async function ResumesPage({ searchParams }) {
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-light text-primary">
             <FileText size={24} />
           </span>
-          {template !== "all" ? (
+          {category !== "all" ? (
             <>
-              <p className="font-semibold text-text">No resumes match this template</p>
-              <p className="max-w-xs text-sm text-text-secondary">Try a different template filter.</p>
+              <p className="font-semibold text-text">No resumes in this category</p>
+              <p className="max-w-xs text-sm text-text-secondary">Try a different category filter.</p>
               <Link href="/resumes" className="btn-primary px-5 py-2.5 text-sm">
                 Clear filter
               </Link>

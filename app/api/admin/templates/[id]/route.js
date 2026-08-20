@@ -10,7 +10,7 @@ import { regenerateTemplateClassScan } from "@/lib/regenerateTemplateClassScan";
 // templateId isn't editable once created — it's embedded in every Resume
 // that already picked this template (Resume.templateId), same reasoning as
 // Plan.code/billingType being immutable.
-const ALLOWED_FIELDS = ["name", "code", "thumbnail", "premium", "defaultColor", "fullBleed", "active"];
+const ALLOWED_FIELDS = ["name", "code", "thumbnail", "category", "premium", "defaultColor", "fullBleed", "active"];
 
 export async function GET(req, { params }) {
   const session = await requireAdmin();
@@ -48,8 +48,10 @@ export async function PATCH(req, { params }) {
   for (const field of ALLOWED_FIELDS) {
     if (body[field] !== undefined) {
       previousValue[field] = template[field];
-      template[field] = body[field];
-      newValue[field] = body[field];
+      // "" means "no category" — store as unset rather than an empty string,
+      // which would fail the schema's enum validator.
+      template[field] = field === "category" && body[field] === "" ? undefined : body[field];
+      newValue[field] = template[field];
     }
   }
 

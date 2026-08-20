@@ -6,10 +6,12 @@ import Link from "next/link";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import { ArrowLeft, Save, RefreshCw, Trash2, Check, Sparkles, FileCode2, Palette, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, Trash2, Check, Sparkles, FileCode2, Palette, Image as ImageIcon, Tag } from "lucide-react";
 import { compileTemplateComponent } from "@/lib/compileTemplateCode";
 import { fetchJson } from "@/lib/fetchJson";
 import { NEW_TEMPLATE_BOILERPLATE } from "@/lib/templateBoilerplate";
+import { TEMPLATE_CATEGORY_OPTIONS } from "@/lib/templates";
+import Select from "@/components/ui/Select";
 import TemplateCodeEditor from "./TemplateCodeEditor";
 import ThumbnailUploader from "./ThumbnailUploader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -21,6 +23,7 @@ const EMPTY_FORM = {
   templateId: "",
   code: NEW_TEMPLATE_BOILERPLATE,
   thumbnail: "",
+  category: "",
   premium: false,
   defaultColor: "",
   fullBleed: false,
@@ -167,6 +170,7 @@ export default function TemplateEditorForm({ templateDocId }) {
           templateId: data.templateId,
           code: data.code,
           thumbnail: data.thumbnail || "",
+          category: data.category || "",
           premium: data.premium,
           defaultColor: data.defaultColor || "",
           fullBleed: data.fullBleed,
@@ -200,6 +204,7 @@ export default function TemplateEditorForm({ templateDocId }) {
             name: form.name,
             code: form.code,
             thumbnail: form.thumbnail,
+            category: form.category,
             premium: form.premium,
             defaultColor: form.defaultColor,
             fullBleed: form.fullBleed,
@@ -339,6 +344,17 @@ export default function TemplateEditorForm({ templateDocId }) {
               />
               <span className="font-mono text-xs text-text-secondary">{form.defaultColor || "#6d5ce8"}</span>
             </div>
+          </div>
+          <div>
+            <label className="flex items-center gap-1 text-xs font-semibold text-text-secondary">
+              <Tag size={12} /> Category
+            </label>
+            <Select
+              className="mt-1"
+              value={form.category}
+              onChange={(value) => setField("category", value)}
+              options={TEMPLATE_CATEGORY_OPTIONS}
+            />
           </div>
           <div className="sm:col-span-2 lg:col-span-2">
             <label className="flex items-center gap-1 text-xs font-semibold text-text-secondary">

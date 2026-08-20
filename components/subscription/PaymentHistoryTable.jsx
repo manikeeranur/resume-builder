@@ -19,7 +19,11 @@ export default function PaymentHistoryTable({ payments }) {
   }
 
   return (
-    <div className="card overflow-x-auto">
+    <div className="card relative overflow-x-auto">
+      {/* Hints that Reference/Invoice extend off-screen on narrow viewports,
+          where the table scrolls horizontally inside this card. Pinned to
+          the card's own edge (not the scrolling content) via absolute. */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent sm:hidden" />
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead>
           <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">

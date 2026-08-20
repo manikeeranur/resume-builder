@@ -3,17 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { CircleUserRound, LogIn, LogOut } from "lucide-react";
+import { ChevronDown, CircleUserRound, LogIn, LogOut } from "lucide-react";
 import LoginModal from "@/components/auth/LoginModal";
 import CrownBadge from "./CrownBadge";
 import AvatarImage from "@/components/ui/AvatarImage";
 
-export default function AvatarMenu({ user, avatarUrl, isPremium, googleEnabled }) {
+export default function AvatarMenu({ user, avatarUrl, isPremium, googleEnabled, showGreeting }) {
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const containerRef = useRef(null);
   const src = avatarUrl || user?.image || null;
   const initial = (user?.name || "?").charAt(0).toUpperCase();
+  const firstName = (user?.name || "").trim().split(" ")[0] || "Account";
 
   useEffect(() => {
     if (!open) return;
@@ -58,14 +59,24 @@ export default function AvatarMenu({ user, avatarUrl, isPremium, googleEnabled }
         onClick={() => setOpen((v) => !v)}
         aria-label="Account menu"
         aria-expanded={open}
-        className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary ring-2 ring-primary/30 ring-offset-2 transition-shadow hover:ring-primary/50"
+        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-bg"
       >
-        {initial}
-        <AvatarImage src={src} alt={user?.name} className="absolute inset-0 h-full w-full object-cover" />
+        <span className="relative flex h-9 w-9 shrink-0">
+          {/* Sibling of the overflow-hidden span (not a child) so the badge
+              isn't clipped by the avatar's own rounded-full overflow. */}
+          <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-primary-light text-sm font-bold text-primary ring-2 ring-primary/30 ring-offset-2 transition-shadow hover:ring-primary/50">
+            {initial}
+            <AvatarImage src={src} alt={user?.name} className="absolute inset-0 h-full w-full object-cover" />
+          </span>
+          {isPremium && <CrownBadge />}
+        </span>
+        {showGreeting && (
+          <span className="hidden items-center gap-1 sm:flex">
+            <span className="whitespace-nowrap text-sm font-semibold text-text">Hi, {firstName}</span>
+            <ChevronDown size={14} className={`text-text-secondary transition-transform ${open ? "rotate-180" : ""}`} />
+          </span>
+        )}
       </button>
-      {/* Sibling of the overflow-hidden button (not a child) so the badge
-          isn't clipped by the avatar's own rounded-full overflow. */}
-      {isPremium && <CrownBadge />}
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+10px)] z-30 w-72 overflow-hidden rounded-2xl border border-border bg-white shadow-card-lg">

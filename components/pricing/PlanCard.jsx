@@ -1,18 +1,27 @@
 import Link from "next/link";
+import { Leaf, Calendar, ShieldCheck } from "lucide-react";
 import { IconRosetteDiscountCheckFilled, IconXboxXFilled } from "@tabler/icons-react";
 import RazorpayCheckoutButton from "./RazorpayCheckoutButton";
 
 function formatPrice(plan) {
-  if (plan.price <= 0) return "Free";
   return `${plan.currency === "INR" ? "₹" : plan.currency}${plan.price}`;
 }
 
 function billingLabel(plan) {
-  if (plan.billingType === "FREE") return "forever";
+  if (plan.billingType === "FREE") return "/ forever";
   if (plan.billingType === "MONTHLY") return "/ month";
   if (plan.billingType === "YEARLY") return "/ year";
   return "";
 }
+
+// Per-tier icon + accent color, purely visual — mirrors the reference's
+// leaf/calendar/shield color coding so the three cards read apart at a
+// glance before you even reach the price.
+const TIER_STYLE = {
+  FREE: { icon: Leaf, iconBg: "bg-success/10", iconColor: "text-success", border: "border-t-success" },
+  MONTHLY: { icon: Calendar, iconBg: "bg-blue-100", iconColor: "text-blue-600", border: "border-t-blue-500" },
+  YEARLY: { icon: ShieldCheck, iconBg: "bg-primary-light", iconColor: "text-primary", border: "border-t-primary" },
+};
 
 // Monthly and Yearly carry identical features (see featureList) — the only
 // axis that ranks them is commitment/duration, so Yearly outranks Monthly
@@ -50,10 +59,12 @@ export default function PlanCard({ plan, isCurrent, currentBillingType, user, hi
   // nothing new — its features are a subset of what they already have —
   // so it's disabled rather than offered as a clickable action.
   const isLowerTier = user && currentBillingType && BILLING_RANK[plan.billingType] < BILLING_RANK[currentBillingType];
+  const tierStyle = TIER_STYLE[plan.billingType] || TIER_STYLE.FREE;
+  const TierIcon = tierStyle.icon;
 
   return (
     <div
-      className={`card relative flex flex-col gap-5 p-6 ${highlighted ? "ring-2 ring-primary" : ""}`}
+      className={`card relative flex flex-col gap-5 border-t-4 p-6 ${tierStyle.border} ${highlighted ? "ring-2 ring-primary" : ""}`}
     >
       {highlighted && (
         <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[11px] font-bold text-white shadow-card">
@@ -61,6 +72,9 @@ export default function PlanCard({ plan, isCurrent, currentBillingType, user, hi
         </span>
       )}
       <div>
+        <span className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl ${tierStyle.iconBg} ${tierStyle.iconColor}`}>
+          <TierIcon size={20} />
+        </span>
         <h3 className="text-lg font-bold text-text">{plan.name}</h3>
         {/* min-h reserves space for a 2-line description even when this
             plan's own description is a single line, so the price row below
@@ -71,7 +85,7 @@ export default function PlanCard({ plan, isCurrent, currentBillingType, user, hi
 
       <div className="flex items-baseline gap-1.5">
         <span className="text-3xl font-extrabold text-text">{formatPrice(plan)}</span>
-        {!isFree && <span className="text-sm font-medium text-text-secondary">{billingLabel(plan)}</span>}
+        <span className="text-sm font-medium text-text-secondary">{billingLabel(plan)}</span>
       </div>
 
       <ul className="flex-1 space-y-2.5">

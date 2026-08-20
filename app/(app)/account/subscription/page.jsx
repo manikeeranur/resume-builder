@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { FileText } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Payment from "@/lib/models/Payment";
@@ -20,7 +21,7 @@ export default async function SubscriptionPage() {
 
   return (
     <>
-      <TopBar backHref="/dashboard" title="Subscription" subtitle="Your plan, billing history and invoices" />
+      <TopBar backHref="/dashboard" title="Subscription" subtitle="Your plan, billing history and invoices" size="lg" />
       <div className="mx-auto max-w-[1100px] space-y-8 px-4 py-8 sm:px-6">
         <SubscriptionSummary
           plan={JSON.parse(JSON.stringify(plan))}
@@ -28,7 +29,12 @@ export default async function SubscriptionPage() {
         />
 
         <div>
-          <h2 className="mb-4 text-base font-bold text-text">Payment history</h2>
+          <h2 className="mb-4 flex items-center gap-2.5 text-base font-bold text-text">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-light text-primary">
+              <FileText size={16} />
+            </span>
+            Payment history
+          </h2>
           <PaymentHistoryTable payments={JSON.parse(JSON.stringify(payments))} />
         </div>
       </div>

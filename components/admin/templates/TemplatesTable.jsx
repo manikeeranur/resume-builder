@@ -1,45 +1,58 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, Crown, Lock } from "lucide-react";
 import CustomTable from "@/components/common/CustomTable";
 import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { TEMPLATE_LIST } from "@/lib/templates";
-
-// The 6 built-in templates ship as static files (components/templates/
-// Template1.jsx..Template6.jsx), not a Template document — there's nothing
-// to fetch, edit or delete here. Shown as plain rows alongside the
-// DB-backed ones purely for visibility (so this list reflects every
-// template a real user can pick, not just the custom ones), with `id`
-// standing in for `_id` as this table's rowKey.
-const BUILT_IN_ROWS = TEMPLATE_LIST.map((t) => ({
-  _id: t.id,
-  name: t.name,
-  templateId: t.id,
-  premium: t.premium,
-  updatedAt: null,
-  isBuiltIn: true,
-}));
+import Select from "@/components/ui/Select";
+import { TEMPLATE_LIST, TEMPLATE_CATEGORY_OPTIONS } from "@/lib/templates";
 
 export default function TemplatesTable() {
   const router = useRouter();
   const [templates, setTemplates] = useState(null);
+  const [builtinOverrides, setBuiltinOverrides] = useState({});
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState("");
   const [deleteConfirmTemplate, setDeleteConfirmTemplate] = useState(null);
+  const [savingCategoryId, setSavingCategoryId] = useState(null);
+  const [categoryError, setCategoryError] = useState("");
 
   const load = useCallback(() => {
     fetch("/api/admin/templates")
       .then((r) => r.json())
       .then(setTemplates)
       .catch(() => setTemplates([]));
+    fetch("/api/admin/templates/builtin-categories")
+      .then((r) => r.json())
+      .then(setBuiltinOverrides)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // The 6 built-in templates ship as static files (components/templates/
+  // Template1.jsx..Template6.jsx), not a Template document — there's no code,
+  // thumbnail, premium flag etc. to edit for them. Category is the one
+  // exception (see TemplateOverride), so it's merged in here from whatever
+  // was fetched above, falling back to TEMPLATE_LIST's hardcoded default.
+  // `id` stands in for `_id` as this table's rowKey.
+  const builtInRows = useMemo(
+    () =>
+      TEMPLATE_LIST.map((t) => ({
+        _id: t.id,
+        name: t.name,
+        templateId: t.id,
+        premium: t.premium,
+        category: t.id in builtinOverrides ? builtinOverrides[t.id] : t.category || null,
+        updatedAt: null,
+        isBuiltIn: true,
+      })),
+    [builtinOverrides]
+  );
 
   const handleDelete = async (template) => {
     setError("");
@@ -53,6 +66,56 @@ export default function TemplatesTable() {
       setError(err.message);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleCategoryChange = async (template, category) => {
+    setCategoryError("");
+    const previous = template.category;
+    setSavingCategoryId(template._id);
+    // Optimistic update — reverted below if the PATCH fails.
+    setTemplates((prev) => prev.map((t) => (t._id === template._id ? { ...t, category: category || null } : t)));
+    try {
+      const res = await fetch(`/api/admin/templates/${template._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update category");
+    } catch (err) {
+      setCategoryError(err.message);
+      setTemplates((prev) => prev.map((t) => (t._id === template._id ? { ...t, category: previous } : t)));
+    } finally {
+      setSavingCategoryId(null);
+    }
+  };
+
+  const handleBuiltinCategoryChange = async (template, category) => {
+    setCategoryError("");
+    const hadOverride = template.templateId in builtinOverrides;
+    const previous = builtinOverrides[template.templateId];
+    setSavingCategoryId(template._id);
+    setBuiltinOverrides((prev) => ({ ...prev, [template.templateId]: category || null }));
+    try {
+      const res = await fetch(`/api/admin/templates/builtin/${template.templateId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update category");
+    } catch (err) {
+      setCategoryError(err.message);
+      setBuiltinOverrides((prev) => {
+        if (!hadOverride) {
+          const { [template.templateId]: _omit, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [template.templateId]: previous };
+      });
+    } finally {
+      setSavingCategoryId(null);
     }
   };
 
@@ -70,6 +133,19 @@ export default function TemplatesTable() {
         ) : (
           <span className="text-text-secondary">Free</span>
         ),
+    },
+    {
+      key: "category",
+      title: "Category",
+      render: (t) => (
+        <div className={`w-36 ${savingCategoryId === t._id ? "pointer-events-none opacity-60" : ""}`} onClick={(e) => e.stopPropagation()}>
+          <Select
+            value={t.category || ""}
+            onChange={(value) => (t.isBuiltIn ? handleBuiltinCategoryChange(t, value) : handleCategoryChange(t, value))}
+            options={TEMPLATE_CATEGORY_OPTIONS}
+          />
+        </div>
+      ),
     },
     {
       key: "active",
@@ -97,7 +173,7 @@ export default function TemplatesTable() {
         t.isBuiltIn ? (
           <span className="flex items-center gap-1.5 text-xs text-text-secondary">
             <Lock size={12} />
-            Not editable
+            No actions
           </span>
         ) : (
           <CustomThreeDotMenu
@@ -116,11 +192,12 @@ export default function TemplatesTable() {
     },
   ];
 
-  const rows = [...BUILT_IN_ROWS, ...(templates || [])];
+  const rows = [...builtInRows, ...(templates || [])];
 
   return (
     <div className="space-y-3">
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {categoryError && <p className="text-sm text-red-600">{categoryError}</p>}
 
       <CustomTable
         columns={columns}

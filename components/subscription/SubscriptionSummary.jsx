@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, X } from "lucide-react";
+import { Calendar, Check, ChevronRight, Clock, RotateCcw, X } from "lucide-react";
 
 function formatDate(date) {
   return date ? new Date(date).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" }) : "—";
@@ -45,31 +45,52 @@ export default function SubscriptionSummary({ plan, subscription }) {
           )}
         </div>
         <div className="flex gap-2.5">
-          <Link href="/pricing" className="btn-primary px-4 py-2.5 text-sm">
+          <Link href="/pricing" className="btn-primary flex items-center gap-1 px-4 py-2.5 text-sm">
             {isPaid ? "Renew / Change Plan" : "Upgrade"}
+            <ChevronRight size={16} />
           </Link>
         </div>
       </div>
 
       {isPaid && subscription && (
-        <dl className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-border bg-bg p-4 sm:grid-cols-4">
-          <div>
-            <dt className="text-xs text-text-secondary">Start date</dt>
-            <dd className="mt-0.5 text-sm font-semibold text-text">{formatDate(subscription.startDate)}</dd>
+        <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-border bg-bg p-4 sm:grid-cols-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-light text-primary">
+              <Calendar size={16} />
+            </span>
+            <div>
+              <p className="text-xs text-text-secondary">Start date</p>
+              <p className="mt-0.5 text-sm font-semibold text-text">{formatDate(subscription.startDate)}</p>
+            </div>
           </div>
-          <div>
-            <dt className="text-xs text-text-secondary">Expiry date</dt>
-            <dd className="mt-0.5 text-sm font-semibold text-text">{formatDate(subscription.expiryDate)}</dd>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-light text-primary">
+              <Calendar size={16} />
+            </span>
+            <div>
+              <p className="text-xs text-text-secondary">Expiry date</p>
+              <p className="mt-0.5 text-sm font-semibold text-text">{formatDate(subscription.expiryDate)}</p>
+            </div>
           </div>
-          <div>
-            <dt className="text-xs text-text-secondary">Days remaining</dt>
-            <dd className="mt-0.5 text-sm font-semibold text-text">{days ?? "—"}</dd>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-light text-primary">
+              <Clock size={16} />
+            </span>
+            <div>
+              <p className="text-xs text-text-secondary">Days remaining</p>
+              <p className="mt-0.5 text-sm font-semibold text-text">{days == null ? "—" : `${days} day${days === 1 ? "" : "s"}`}</p>
+            </div>
           </div>
-          <div>
-            <dt className="text-xs text-text-secondary">Auto-renew</dt>
-            <dd className="mt-0.5 text-sm font-semibold text-text">{subscription.autoRenew ? "On" : "Off"}</dd>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-light text-primary">
+              <RotateCcw size={16} />
+            </span>
+            <div>
+              <p className="text-xs text-text-secondary">Auto-renew</p>
+              <p className="mt-0.5 text-sm font-semibold text-text">{subscription.autoRenew ? "On" : "Off"}</p>
+            </div>
           </div>
-        </dl>
+        </div>
       )}
 
       <ul className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">

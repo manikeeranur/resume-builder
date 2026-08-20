@@ -1,23 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { TEMPLATE_LIST } from "@/lib/templates";
+import { LayoutGrid, Briefcase, Zap, Palette, AlignLeft, Rocket } from "lucide-react";
+import { TEMPLATE_LIST, TEMPLATE_CATEGORIES } from "@/lib/templates";
 import { emptyResumeSections, defaultThemeConfig } from "@/lib/resumeDefaults";
 import { createLocalDraftId, saveLocalDraft } from "@/lib/localResume";
 import TemplateThumb from "./TemplateThumb";
 import PremiumBadge from "./PremiumBadge";
 
+// Matches TEMPLATE_CATEGORIES order — purely decorative per-pill icons.
+const CATEGORY_ICONS = { Professional: Briefcase, Modern: Zap, Creative: Palette, Minimal: AlignLeft, Executive: Rocket };
+
 export default function TemplateGalleryGrid() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { status } = useSession();
   const [creatingId, setCreatingId] = useState(null);
   const [error, setError] = useState(null);
+  const [category, setCategory] = useState("All");
   // Starts with the static 6 built-ins (instant, no flash of empty state),
   // then swaps in the merged catalog — built-ins plus every active
   // admin-created template — once GET /api/templates resolves.
   const [templates, setTemplates] = useState(TEMPLATE_LIST);
+
+  const query = (searchParams.get("q") || "").trim().toLowerCase();
+  const visibleTemplates = templates
+    .filter((t) => category === "All" || t.category === category)
+    .filter((t) => !query || t.name.toLowerCase().includes(query));
 
   useEffect(() => {
     fetch("/api/templates")
@@ -89,8 +100,46 @@ export default function TemplateGalleryGrid() {
           )}
         </p>
       )}
+      <div className="mb-6 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setCategory("All")}
+          className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+            category === "All" ? "border-primary bg-primary text-white" : "border-border bg-white text-text-secondary hover:border-primary hover:text-primary"
+          }`}
+        >
+          <LayoutGrid size={14} />
+          All Templates
+        </button>
+        {TEMPLATE_CATEGORIES.map((c) => {
+          const Icon = CATEGORY_ICONS[c];
+          return (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCategory(c)}
+              className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                category === c ? "border-primary bg-primary text-white" : "border-border bg-white text-text-secondary hover:border-primary hover:text-primary"
+              }`}
+            >
+              <Icon size={14} />
+              {c}
+            </button>
+          );
+        })}
+      </div>
+
+      {visibleTemplates.length === 0 ? (
+        <p className="py-12 text-center text-sm text-text-secondary">
+          {query ? (
+            <>No templates match &ldquo;{searchParams.get("q")}&rdquo;{category !== "All" ? ` in ${category}` : ""}.</>
+          ) : (
+            <>No templates in {category} yet.</>
+          )}
+        </p>
+      ) : (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {templates.map((t) => (
+        {visibleTemplates.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -98,7 +147,12 @@ export default function TemplateGalleryGrid() {
             disabled={creatingId !== null}
             className="card block w-full overflow-hidden text-left transition-all hover:-translate-y-0.5 hover:shadow-card-lg"
           >
-            <div className="relative aspect-[3/4] border-b border-border">
+            {/* A4 ratio (210:297 ≈ 0.707), not the old 3:4 (0.75) box — the
+                thumbnail images and ScaledThumb's live render are both A4
+                pages, so a 3:4 box combined with object-cover/overflow-hidden
+                was cropping the bottom of every resume (contact info,
+                education, later bullets) to force-fit the wrong ratio. */}
+            <div className="relative aspect-[210/297] border-b border-border">
               <TemplateThumb templateId={t.id} thumbnail={t.thumbnail} />
               {t.premium && <PremiumBadge className="absolute right-2 top-2" />}
               {creatingId === t.id && (
@@ -114,6 +168,7 @@ export default function TemplateGalleryGrid() {
           </button>
         ))}
       </div>
+      )}
     </div>
   );
 }
