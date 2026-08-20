@@ -2,6 +2,7 @@
 
 import { Search, User, SlidersHorizontal, X } from "lucide-react";
 import Select from "@/components/ui/Select";
+import DateRangeFilter from "@/components/admin/DateRangeFilter";
 
 const STATUSES = ["CREATED", "PENDING", "SUCCESS", "FAILED", "REFUNDED"];
 const REFUND_STATUSES = ["NONE", "INITIATED", "PROCESSED", "FAILED"];
@@ -92,11 +93,11 @@ export default function AdminPaymentFilters({ filters, onChange, plans }) {
         </Field>
 
         <Field label="Date range">
-          <div className="flex items-center gap-1.5">
-            <input type="date" className="input-field" value={filters.from} onChange={set("from")} />
-            <span className="shrink-0 text-text-secondary">–</span>
-            <input type="date" className="input-field" value={filters.to} onChange={set("to")} />
-          </div>
+          <DateRangeFilter
+            from={filters.from}
+            to={filters.to}
+            onChange={({ from, to }) => onChange({ ...filters, from, to })}
+          />
         </Field>
       </div>
     </div>

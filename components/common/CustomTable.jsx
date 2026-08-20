@@ -6,9 +6,10 @@
 // all unchanged from the source. TypeScript generics/types stripped.
 //
 // The one intentional swap: platform-fe's per-page control is its own
-// CustomSelect (which itself pulls in Radix Popover + a shadcn Input — a
-// second, unrelated component tree just for a 3-option dropdown); replaced
-// here with a plain <select> wired to the exact same changePerPage/
+// CustomSelect (which pulls in Radix Popover + a shadcn Input — a second,
+// unrelated component tree just for a 3-option dropdown); replaced here
+// with this app's own lightweight Select (components/ui/Select.jsx, no
+// Radix Popover dependency), wired to the exact same changePerPage/
 // perPageOptions/currentPerPage values. Everything else — Button, the
 // column-config API, sort/pagination/drag/expand logic — is byte-for-byte
 // the same as the source file.
@@ -17,6 +18,7 @@ import { IconCaretUpFilled, IconCaretDownFilled, IconChevronDown, IconGripVertic
 
 import { Button } from "@/components/components/ui/button";
 import { cn } from "@/components/lib/utils";
+import Select from "@/components/ui/Select";
 import TableSkeleton from "./TableSkeleton";
 
 function moveItem(items, from, to) {
@@ -288,8 +290,9 @@ export default function CustomTable({
     : "overflow-x-auto";
 
   // Swapped from platform-fe's CustomSelect (Radix Popover + shadcn Input)
-  // to a plain <select> — see file header. Same currentPerPage/changePerPage
-  // wiring either way.
+  // to this app's own lightweight Select (components/ui/Select.jsx, no
+  // Radix Popover dependency) — see file header. Same currentPerPage/
+  // changePerPage wiring either way.
   const desktopPagination = (
     <div className={`${desktopPaginationClass} items-center justify-between px-4 py-3`}>
       <Button variant="secondary" size="sm" disabled={currentPage === 1} onClick={() => changePage(currentPage - 1)}>
@@ -301,17 +304,12 @@ export default function CustomTable({
           Page {currentPage} of {totalPages}
         </span>
 
-        <select
-          className="h-9 w-[140px] rounded-md border border-border-secondary bg-bg-primary px-2 text-sm text-fg-primary"
-          value={currentPerPage}
-          onChange={(e) => changePerPage(Number(e.target.value))}
-        >
-          {perPageOptions.map((option) => (
-            <option key={option} value={option}>
-              {option} per page
-            </option>
-          ))}
-        </select>
+        <Select
+          className="w-[140px]"
+          value={String(currentPerPage)}
+          onChange={(v) => changePerPage(Number(v))}
+          options={perPageOptions.map((option) => ({ value: String(option), label: `${option} per page` }))}
+        />
       </div>
 
       <Button variant="secondary" size="sm" disabled={currentPage === totalPages} onClick={() => changePage(currentPage + 1)}>

@@ -28,8 +28,11 @@ import StatCard from "@/components/dashboard/StatCard";
 import CrownBadge from "@/components/layout/CrownBadge";
 import AvatarImage from "@/components/ui/AvatarImage";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import Select from "@/components/ui/Select";
+import Toggle from "@/components/ui/Toggle";
 import CustomTable from "@/components/common/CustomTable";
 import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
+import DateRangeFilter from "@/components/admin/DateRangeFilter";
 import ChangePlanModal from "@/components/admin/ChangePlanModal";
 import DeleteUserModal from "@/components/admin/DeleteUserModal";
 import SendEmailModal from "@/components/admin/SendEmailModal";
@@ -39,6 +42,18 @@ import UserChatModal from "@/components/admin/UserChatModal";
 import { useToast } from "@/components/providers/ToastProvider";
 
 const EMPTY_FILTERS = { q: "", role: "", provider: "", planId: "", joinedFrom: "", joinedTo: "", online: false };
+
+const PROVIDER_OPTIONS = [
+  { value: "", label: "All providers" },
+  { value: "credentials", label: "Email" },
+  { value: "google", label: "Google" },
+];
+
+const ROLE_OPTIONS = [
+  { value: "", label: "All roles" },
+  { value: "user", label: "User" },
+  { value: "admin", label: "Admin" },
+];
 
 // "30 APR 2026 10:05 PM" — day, abbreviated-uppercase month, year, then
 // 12-hour time, all in one glance instead of just a bare date.
@@ -98,6 +113,11 @@ export default function AdminUsersTable() {
   const [bulkReminderLoading, setBulkReminderLoading] = useState(false);
   const [plans, setPlans] = useState([]);
   const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const planOptions = [
+    { value: "", label: "All plans" },
+    { value: "__free__", label: "Free" },
+    ...plans.filter((p) => p.billingType !== "FREE").map((p) => ({ value: p._id, label: p.name })),
+  ];
 
   useEffect(() => {
     fetch("/api/admin/plans")
@@ -355,68 +375,47 @@ export default function AdminUsersTable() {
           value={filters.q}
           onChange={(e) => setFilters({ ...filters, q: e.target.value })}
         />
-        <select
-          className="input-field"
+        <Select
           value={filters.provider}
-          onChange={(e) => setFilters({ ...filters, provider: e.target.value })}
-        >
-          <option value="">All providers</option>
-          <option value="credentials">Email</option>
-          <option value="google">Google</option>
-        </select>
-        <select
-          className="input-field"
+          onChange={(v) => setFilters({ ...filters, provider: v })}
+          options={PROVIDER_OPTIONS}
+          className="w-full"
+        />
+        <Select
           value={filters.planId}
-          onChange={(e) => setFilters({ ...filters, planId: e.target.value })}
-        >
-          <option value="">All plans</option>
-          <option value="__free__">Free</option>
-          {plans.filter((p) => p.billingType !== "FREE").map((p) => (
-            <option key={p._id} value={p._id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="input-field"
+          onChange={(v) => setFilters({ ...filters, planId: v })}
+          options={planOptions}
+          className="w-full"
+        />
+        <Select
           value={filters.role}
-          onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-        >
-          <option value="">All roles</option>
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
-        </select>
-        <label className="input-field flex cursor-pointer items-center gap-2 text-sm font-medium text-text-secondary">
-          <input
-            type="checkbox"
-            checked={filters.online}
-            onChange={(e) => setFilters({ ...filters, online: e.target.checked })}
-            className="h-4 w-4 rounded border-border accent-primary"
-          />
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-            Online now
-          </span>
-        </label>
-        <div className="flex items-center gap-1.5 sm:col-span-2 lg:col-span-2">
-          <input
-            type="date"
-            className="input-field"
-            title="Joined from"
-            value={filters.joinedFrom}
-            max={filters.joinedTo || undefined}
-            onChange={(e) => setFilters({ ...filters, joinedFrom: e.target.value })}
-          />
-          <span className="text-xs text-text-secondary">to</span>
-          <input
-            type="date"
-            className="input-field"
-            title="Joined to"
-            value={filters.joinedTo}
-            min={filters.joinedFrom || undefined}
-            onChange={(e) => setFilters({ ...filters, joinedTo: e.target.value })}
-          />
-        </div>
+          onChange={(v) => setFilters({ ...filters, role: v })}
+          options={ROLE_OPTIONS}
+          className="w-full"
+        />
+        <DateRangeFilter
+          from={filters.joinedFrom}
+          to={filters.joinedTo}
+          placeholder="Joined date range"
+          onChange={({ from, to }) => setFilters({ ...filters, joinedFrom: from, joinedTo: to })}
+        />
+      </div>
+
+      {/* inline-block (not flex) so it shrinks to content width — Toggle's
+          own row is justify-between, meant to fill a fixed-width box; left
+          unconstrained here it would push the switch far from its label. */}
+      <div className="inline-block px-1">
+        <Toggle
+          checked={filters.online}
+          onChange={(checked) => setFilters({ ...filters, online: checked })}
+          label={
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-green-500" />
+              Online now
+            </span>
+          }
+          ariaLabel="Online now"
+        />
       </div>
 
       <CustomTable

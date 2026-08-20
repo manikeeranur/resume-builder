@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import RippleButton from "@/components/ui/RippleButton";
+import Select from "@/components/ui/Select";
 
 // Shared by the users list (kebab menu) and the per-user detail page — both
 // need the same "assign this user a plan" flow: PATCH the existing active
@@ -60,13 +61,12 @@ export default function ChangePlanModal({ userId, subscriptionId, currentPlanId,
         </div>
 
         <label className="block text-xs font-semibold text-text-secondary">New plan</label>
-        <select className="input-field mt-1" value={planId} onChange={(e) => setPlanId(e.target.value)}>
-          {plans.map((p) => (
-            <option key={p._id} value={p._id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <Select
+          className="mt-1"
+          value={planId}
+          onChange={setPlanId}
+          options={plans.map((p) => ({ value: p._id, label: p.name }))}
+        />
 
         {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 

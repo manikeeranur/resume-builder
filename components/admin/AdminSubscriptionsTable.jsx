@@ -4,8 +4,14 @@ import { useEffect, useState, useCallback } from "react";
 import { X, Repeat, BadgeCheck, Clock, Ban, CalendarPlus, ArrowLeftRight, RotateCcw, History } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import AvatarImage from "@/components/ui/AvatarImage";
+import Select from "@/components/ui/Select";
 import CustomTable from "@/components/common/CustomTable";
 import CustomThreeDotMenu from "@/components/common/CustomThreeDotMenu";
+
+const STATUS_OPTIONS = [
+  { value: "", label: "All statuses" },
+  ...["ACTIVE", "EXPIRED", "CANCELLED", "PENDING"].map((s) => ({ value: s, label: s })),
+];
 
 function formatDate(date) {
   return date ? new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
@@ -111,13 +117,12 @@ function ActionModal({ subscription, action, plans, onClose, onDone }) {
         {action === "changePlan" && (
           <>
             <label className="block text-xs font-semibold text-text-secondary">New plan</label>
-            <select className="input-field mt-1" value={planId} onChange={(e) => setPlanId(e.target.value)}>
-              {plans.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <Select
+              className="mt-1"
+              value={planId}
+              onChange={setPlanId}
+              options={plans.map((p) => ({ value: p._id, label: p.name }))}
+            />
           </>
         )}
 
@@ -297,30 +302,18 @@ export default function AdminSubscriptionsTable({ initialUser = "" }) {
           value={filters.user}
           onChange={(e) => setFilters({ ...filters, user: e.target.value })}
         />
-        <select
-          className="input-field"
+        <Select
           value={filters.planId}
-          onChange={(e) => setFilters({ ...filters, planId: e.target.value })}
-        >
-          <option value="">All plans</option>
-          {plans.map((p) => (
-            <option key={p._id} value={p._id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="input-field"
+          onChange={(v) => setFilters({ ...filters, planId: v })}
+          options={[{ value: "", label: "All plans" }, ...plans.map((p) => ({ value: p._id, label: p.name }))]}
+          className="w-full"
+        />
+        <Select
           value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-        >
-          <option value="">All statuses</option>
-          {["ACTIVE", "EXPIRED", "CANCELLED", "PENDING"].map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setFilters({ ...filters, status: v })}
+          options={STATUS_OPTIONS}
+          className="w-full"
+        />
       </div>
 
       <CustomTable
