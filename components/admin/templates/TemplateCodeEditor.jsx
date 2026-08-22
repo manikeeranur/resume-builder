@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { javascript } from "@codemirror/lang-javascript";
-import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import { Check, Copy, Moon, Sun, X } from "lucide-react";
 import { IconArrowsDiagonal } from "@tabler/icons-react";
 
-// Ported from platform-fe's components/common/code-editor-display.tsx —
-// same CodeMirror setup, copy/expand/theme-toggle chrome — trimmed to JSX
-// only (templates are always JSX) and rebuilt without that project's
-// CustomModalResponsive (a Radix Dialog wrapper resume-builder doesn't
-// depend on); the "expand" modal below is a minimal standalone equivalent.
-const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), { ssr: false });
+// Monaco is the actual editor engine VS Code itself is built on (extracted
+// as a standalone library) — not a CodeMirror lookalike. `vs-dark`/`light`
+// below are VS Code's own built-in themes, shipped with Monaco verbatim,
+// so this is the real VS Code editing experience: same JSX IntelliSense
+// (via the embedded TypeScript language service), same minimap, same
+// bracket-pair colorization, same keybindings. Dynamically imported with
+// ssr:false since Monaco needs the DOM/web workers at load time.
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
 function ExpandModal({ onClose, children }) {
   useEffect(() => {
@@ -31,6 +31,13 @@ function ExpandModal({ onClose, children }) {
 
 const getHeightValue = (height) => (typeof height === "number" ? `${height}px` : height);
 
+// Templates are plain JSX (no TypeScript), but pointing Monaco's JS
+// language service at a jsx-flavored path — plus the compiler options set
+// in handleMount below — is what turns on real JSX IntelliSense instead of
+// just generic JS highlighting (mirrors how VS Code itself treats .jsx
+// files as "javascriptreact", not plain "javascript").
+const MONACO_PATH = "template.jsx";
+
 export default function TemplateCodeEditor({
   code,
   isDarkTheme = false,
@@ -43,12 +50,11 @@ export default function TemplateCodeEditor({
   const [copied, setCopied] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [useDarkTheme, setUseDarkTheme] = useState(isDarkTheme);
+  const monacoRef = useRef(null);
 
   useEffect(() => {
     setValue(code);
   }, [code]);
-
-  const extensions = useMemo(() => [javascript({ jsx: true })], []);
 
   const copyCode = async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
@@ -58,8 +64,26 @@ export default function TemplateCodeEditor({
   };
 
   const handleChange = (nextValue) => {
-    setValue(nextValue);
-    onChange?.(nextValue);
+    const next = nextValue ?? "";
+    setValue(next);
+    onChange?.(next);
+  };
+
+  // Runs once per mounted editor instance (the expanded modal gets its own),
+  // enabling JSX IntelliSense — otherwise Monaco's default JS compiler
+  // options don't know these .js-language models contain JSX and everything
+  // under a JSX tag gets flagged as a syntax error.
+  const handleMount = (editor, monaco) => {
+    monacoRef.current = monaco;
+    monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+      jsx: monaco.languages.typescript.JsxEmit.React,
+      allowJs: true,
+      target: monaco.languages.typescript.ScriptTarget.Latest,
+    });
+    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: false,
+      noSyntaxValidation: false,
+    });
   };
 
   const renderCodeBlock = (modal = false) => {
@@ -68,7 +92,7 @@ export default function TemplateCodeEditor({
     return (
       <div
         className={`relative overflow-hidden rounded-xl border ${
-          useDarkTheme ? "border-slate-700 bg-[#1e1e1e]" : "border-slate-200 bg-[#fafafa]"
+          useDarkTheme ? "border-slate-700 bg-[#1e1e1e]" : "border-slate-200 bg-white"
         }`}
       >
         <div className="absolute right-3 top-3 z-20 flex items-center gap-1">
@@ -77,7 +101,7 @@ export default function TemplateCodeEditor({
               type="button"
               onClick={() => setUseDarkTheme((t) => !t)}
               className={`cursor-pointer rounded-md p-1.5 transition ${
-                useDarkTheme ? "bg-[#1e1e1e] text-slate-400 hover:bg-slate-700" : "bg-[#fafafa] text-slate-500 hover:bg-slate-200"
+                useDarkTheme ? "bg-[#1e1e1e] text-slate-400 hover:bg-slate-700" : "bg-white text-slate-500 hover:bg-slate-200"
               }`}
               aria-label={useDarkTheme ? "Switch to light mode" : "Switch to dark mode"}
             >
@@ -89,7 +113,7 @@ export default function TemplateCodeEditor({
             type="button"
             onClick={() => (modal ? setOpenModal(false) : setOpenModal(true))}
             className={`cursor-pointer rounded-md p-1.5 transition ${
-              useDarkTheme ? "bg-[#1e1e1e] text-slate-400 hover:bg-slate-700" : "bg-[#fafafa] text-slate-500 hover:bg-slate-200"
+              useDarkTheme ? "bg-[#1e1e1e] text-slate-400 hover:bg-slate-700" : "bg-white text-slate-500 hover:bg-slate-200"
             }`}
           >
             {modal ? <X size={16} /> : <IconArrowsDiagonal size={16} />}
@@ -99,65 +123,45 @@ export default function TemplateCodeEditor({
             type="button"
             onClick={() => void copyCode()}
             className={`cursor-pointer rounded-md p-1.5 transition ${
-              useDarkTheme ? "bg-[#1e1e1e] text-slate-400 hover:bg-slate-700" : "bg-[#fafafa] text-slate-500 hover:bg-slate-200"
+              useDarkTheme ? "bg-[#1e1e1e] text-slate-400 hover:bg-slate-700" : "bg-white text-slate-500 hover:bg-slate-200"
             }`}
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
           </button>
         </div>
 
-        <CodeMirror
+        <MonacoEditor
+          // Distinct path per instance — the base editor stays mounted
+          // (just hidden) behind the expand modal, so sharing one path
+          // would attach both editors to the same underlying Monaco model
+          // and double-fire onChange for a single keystroke.
+          path={modal ? `${MONACO_PATH}?modal` : MONACO_PATH}
+          defaultLanguage="javascript"
           value={value}
           height={editorHeight}
-          theme={useDarkTheme ? githubDark : githubLight}
-          extensions={extensions}
-          editable={editable}
-          readOnly={!editable}
+          theme={useDarkTheme ? "vs-dark" : "light"}
           onChange={handleChange}
-          basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: false, highlightSelectionMatches: false }}
-          className="code-mirror-editor small-scrollbar"
+          onMount={handleMount}
+          options={{
+            readOnly: !editable,
+            fontSize: 13,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            lineNumbers: "on",
+            minimap: { enabled: !modal },
+            automaticLayout: true,
+            scrollBeyondLastLine: false,
+            tabSize: 2,
+            wordWrap: "off",
+            bracketPairColorization: { enabled: true },
+            renderLineHighlight: "line",
+            padding: { top: 16, bottom: 16 },
+          }}
+          loading={
+            <div className="flex items-center justify-center text-sm text-text-secondary" style={{ height: editorHeight }}>
+              Loading editor…
+            </div>
+          }
         />
-
-        <style jsx global>{`
-          .code-mirror-editor {
-            font-size: 12px;
-          }
-          .code-mirror-editor .cm-editor {
-            min-height: ${editorHeight};
-            background: transparent;
-          }
-          .code-mirror-editor .cm-focused {
-            outline: none;
-          }
-          .code-mirror-editor .cm-scroller {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            scrollbar-width: thin;
-            scrollbar-color: ${useDarkTheme ? "#475569" : "#cbd5e1"} transparent;
-          }
-          .code-mirror-editor .cm-content {
-            padding: 16px 64px 16px 8px;
-            line-height: 24px;
-          }
-          .code-mirror-editor .cm-gutters {
-            background: ${useDarkTheme ? "#1e1e1e" : "#fafafa"};
-            border-right: 1px solid ${useDarkTheme ? "#334155" : "#e5e7eb"};
-          }
-          .code-mirror-editor .cm-lineNumbers .cm-gutterElement {
-            padding: 0 12px;
-            color: ${useDarkTheme ? "#64748b" : "#94a3b8"};
-          }
-          .code-mirror-editor .cm-scroller::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-          }
-          .code-mirror-editor .cm-scroller::-webkit-scrollbar-thumb {
-            border-radius: 999px;
-            background: ${useDarkTheme ? "#475569" : "#cbd5e1"};
-          }
-          .code-mirror-editor .cm-scroller::-webkit-scrollbar-track {
-            background: transparent;
-          }
-        `}</style>
       </div>
     );
   };
