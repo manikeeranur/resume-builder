@@ -6,12 +6,26 @@ import Link from "next/link";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import { ArrowLeft, Save, RefreshCw, Trash2, Check, Sparkles, FileCode2, Palette, Image as ImageIcon, Tag } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  RefreshCw,
+  Trash2,
+  Check,
+  Sparkles,
+  FileCode2,
+  Palette,
+  Image as ImageIcon,
+  Tag,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { compileTemplateComponent } from "@/lib/compileTemplateCode";
 import { fetchJson } from "@/lib/fetchJson";
 import { NEW_TEMPLATE_BOILERPLATE } from "@/lib/templateBoilerplate";
 import { TEMPLATE_CATEGORY_OPTIONS } from "@/lib/templates";
 import Select from "@/components/ui/Select";
+import Toggle from "@/components/ui/Toggle";
 import TemplateCodeEditor from "./TemplateCodeEditor";
 import ThumbnailUploader from "./ThumbnailUploader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -49,7 +63,7 @@ const slugify = (s) =>
 // against ?draft=1 (mirrored into draftCode/draftFullBleed by [id]/draft)
 // so it never needs an explicit Save first.
 function AutoPdfPreviewPane({ templateDocId, code, fullBleed }) {
-  const [state, setState] = useState({ status: "idle", data: null, error: null, numPages: null });
+  const [state, setState] = useState({ status: "idle", data: null, error: null, numPages: null, page: 1 });
   const runningRef = useRef(false);
   const pendingRef = useRef(null);
 
@@ -67,7 +81,7 @@ function AutoPdfPreviewPane({ templateDocId, code, fullBleed }) {
       try {
         compileTemplateComponent(payload.code);
       } catch (err) {
-        setState({ status: "error", data: null, error: err.message, numPages: null });
+        setState((s) => ({ status: "error", data: null, error: err.message, numPages: null, page: s.page }));
         return;
       }
 
@@ -91,9 +105,12 @@ function AutoPdfPreviewPane({ templateDocId, code, fullBleed }) {
           throw new Error(message || `Failed to generate PDF preview (HTTP ${res.status} ${res.statusText})`);
         }
         const buf = await res.arrayBuffer();
-        setState({ status: "ready", data: new Uint8Array(buf), error: null, numPages: null });
+        // Page count can shrink or grow between edits (e.g. trimming content
+        // down to one page) — reset to page 1 rather than stranding the
+        // admin on a page index that may no longer exist.
+        setState({ status: "ready", data: new Uint8Array(buf), error: null, numPages: null, page: 1 });
       } catch (err) {
-        setState({ status: "error", data: null, error: err.message, numPages: null });
+        setState((s) => ({ status: "error", data: null, error: err.message, numPages: null, page: s.page }));
       } finally {
         runningRef.current = false;
         if (pendingRef.current) {
@@ -125,21 +142,47 @@ function AutoPdfPreviewPane({ templateDocId, code, fullBleed }) {
       )}
 
       {state.status === "ready" && (
-        <div className="mt-4 max-h-[80vh] overflow-auto">
-          <Document
-            file={file}
-            onLoadSuccess={({ numPages }) => setState((s) => (s.numPages === numPages ? s : { ...s, numPages }))}
-            loading={<p className="p-6 text-center text-sm text-text-secondary">Loading PDF…</p>}
-            error={<p className="p-6 text-center text-sm text-red-500">Couldn't render this PDF.</p>}
-          >
-            <div className="flex flex-col items-center gap-4">
-              {Array.from({ length: state.numPages || 1 }, (_, i) => (
-                <div key={i} className="shadow-lg">
-                  <Page pageNumber={i + 1} width={480} />
+        <div className="mt-4">
+          <div className="overflow-auto rounded-lg border border-border bg-bg/40 p-3" style={{ maxHeight: "calc(100vh - 260px)" }}>
+            <Document
+              file={file}
+              onLoadSuccess={({ numPages }) =>
+                setState((s) => (s.numPages === numPages ? s : { ...s, numPages, page: Math.min(s.page, numPages) || 1 }))
+              }
+              loading={<p className="p-6 text-center text-sm text-text-secondary">Loading PDF…</p>}
+              error={<p className="p-6 text-center text-sm text-red-500">Couldn't render this PDF.</p>}
+            >
+              <div className="flex justify-center">
+                <div className="shadow-lg">
+                  <Page pageNumber={state.page} width={300} />
                 </div>
-              ))}
+              </div>
+            </Document>
+          </div>
+
+          {state.numPages > 1 && (
+            <div className="mt-2 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setState((s) => ({ ...s, page: Math.max(1, s.page - 1) }))}
+                disabled={state.page <= 1}
+                className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-bg disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft size={13} /> Prev
+              </button>
+              <span className="text-xs font-medium text-text-secondary">
+                Page {state.page} of {state.numPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setState((s) => ({ ...s, page: Math.min(s.numPages, s.page + 1) }))}
+                disabled={state.page >= state.numPages}
+                className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-bg disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next <ChevronRight size={13} />
+              </button>
             </div>
-          </Document>
+          )}
         </div>
       )}
     </div>
@@ -241,7 +284,7 @@ export default function TemplateEditorForm({ templateDocId }) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-text-secondary">
+      <div className="flex min-h-screen items-center justify-center gap-2 bg-[#f8f9fc] text-sm text-text-secondary">
         <RefreshCw size={15} className="animate-spin" />
         Loading template…
       </div>
@@ -249,7 +292,7 @@ export default function TemplateEditorForm({ templateDocId }) {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-[#f8f9fc] px-4 py-6 sm:px-6">
       <Link href="/admin/templates" className="mb-4 flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-primary">
         <ArrowLeft size={13} /> Back to templates
       </Link>
@@ -308,90 +351,74 @@ export default function TemplateEditorForm({ templateDocId }) {
         </p>
       )}
 
-      <div className="card mb-6 overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-border bg-bg/60 px-5 py-3">
-          <Sparkles size={14} className="text-primary" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Template details</p>
+      {/* Compact single-row toolbar rather than a tall form card — this page
+          is mostly about the code editor, so template metadata gets one
+          strip across the top (wrapping to a second line on narrower
+          screens) instead of competing with it for space. */}
+      <div className="card mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+        <div className="flex w-44 items-center gap-1.5">
+          <Sparkles size={13} className="shrink-0 text-primary" />
+          {/* .input-field sets width:100% — sizing lives on this wrapper,
+              not the input, or that 100% would fight the intended width. */}
+          <input
+            className="input-field py-1.5"
+            value={form.name}
+            onChange={(e) => handleNameChange(e.target.value)}
+            placeholder="Template name"
+          />
         </div>
-        <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold text-text-secondary">Name</label>
-            <input className="input-field mt-1" value={form.name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Minimal Two-Column" />
+        <div className="w-40">
+          <input
+            className="input-field py-1.5 font-mono text-xs disabled:bg-bg disabled:text-text-secondary"
+            value={form.templateId}
+            disabled={!isNew}
+            onChange={(e) => {
+              setTemplateIdTouched(true);
+              setField("templateId", slugify(e.target.value));
+            }}
+            placeholder="template-id"
+          />
+        </div>
+        <div className="flex items-center gap-1.5" title="Default color">
+          <Palette size={13} className="shrink-0 text-text-secondary" />
+          <input
+            type="color"
+            className="h-8 w-9 cursor-pointer rounded-md border border-border"
+            value={form.defaultColor || "#6d5ce8"}
+            onChange={(e) => setField("defaultColor", e.target.value)}
+          />
+        </div>
+        <div className="flex w-36 items-center gap-1.5" title="Category">
+          <Tag size={13} className="shrink-0 text-text-secondary" />
+          <Select value={form.category} onChange={(value) => setField("category", value)} options={TEMPLATE_CATEGORY_OPTIONS} />
+        </div>
+        <div className="flex min-w-[230px] items-center gap-1.5" title="Thumbnail">
+          <ImageIcon size={13} className="shrink-0 text-text-secondary" />
+          <ThumbnailUploader value={form.thumbnail} templateKey={form.templateId || form.name} onChange={(url) => setField("thumbnail", url)} />
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {/* inline-block (not flex) so each Toggle shrinks to its own
+              content width instead of stretching — see Toggle.jsx and its
+              other compact usage in AdminUsersTable.jsx. */}
+          <div className="inline-block">
+            <Toggle checked={form.premium} onChange={(v) => setField("premium", v)} label={<span className="text-xs font-medium">Premium</span>} ariaLabel="Premium" />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-text-secondary">Template ID</label>
-            <input
-              className="input-field mt-1 font-mono disabled:bg-bg disabled:text-text-secondary"
-              value={form.templateId}
-              disabled={!isNew}
-              onChange={(e) => {
-                setTemplateIdTouched(true);
-                setField("templateId", slugify(e.target.value));
-              }}
-              placeholder="e.g. minimal-two-column"
-            />
+          <div className="inline-block">
+            <Toggle checked={form.fullBleed} onChange={(v) => setField("fullBleed", v)} label={<span className="text-xs font-medium">Full-bleed</span>} ariaLabel="Full-bleed" />
           </div>
-          <div>
-            <label className="flex items-center gap-1 text-xs font-semibold text-text-secondary">
-              <Palette size={12} /> Default color
-            </label>
-            <div className="mt-1 flex items-center gap-2 rounded-lg border border-border p-1.5">
-              <input
-                type="color"
-                className="h-7 w-9 cursor-pointer rounded-md border-0"
-                value={form.defaultColor || "#6d5ce8"}
-                onChange={(e) => setField("defaultColor", e.target.value)}
-              />
-              <span className="font-mono text-xs text-text-secondary">{form.defaultColor || "#6d5ce8"}</span>
-            </div>
-          </div>
-          <div>
-            <label className="flex items-center gap-1 text-xs font-semibold text-text-secondary">
-              <Tag size={12} /> Category
-            </label>
-            <Select
-              className="mt-1"
-              value={form.category}
-              onChange={(value) => setField("category", value)}
-              options={TEMPLATE_CATEGORY_OPTIONS}
-            />
-          </div>
-          <div className="sm:col-span-2 lg:col-span-2">
-            <label className="flex items-center gap-1 text-xs font-semibold text-text-secondary">
-              <ImageIcon size={12} /> Thumbnail (optional)
-            </label>
-            <div className="mt-1">
-              <ThumbnailUploader
-                value={form.thumbnail}
-                templateKey={form.templateId || form.name}
-                onChange={(url) => setField("thumbnail", url)}
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 sm:col-span-2 lg:col-span-2">
-            <label className="flex items-center gap-2 text-sm text-text">
-              <input type="checkbox" checked={form.premium} onChange={(e) => setField("premium", e.target.checked)} />
-              Premium
-            </label>
-            <label className="flex items-center gap-2 text-sm text-text">
-              <input type="checkbox" checked={form.fullBleed} onChange={(e) => setField("fullBleed", e.target.checked)} />
-              Full-bleed (no print margin)
-            </label>
-            <label className="flex items-center gap-2 text-sm text-text">
-              <input type="checkbox" checked={form.active} onChange={(e) => setField("active", e.target.checked)} />
-              Active (visible to users)
-            </label>
+          <div className="inline-block">
+            <Toggle checked={form.active} onChange={(v) => setField("active", v)} label={<span className="text-xs font-medium">Active</span>} ariaLabel="Active" />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-7">
+        <div className="lg:col-span-5">
           <div className="mb-2 flex items-center gap-2">
             <FileCode2 size={14} className="text-primary" />
             <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Code</p>
           </div>
-          <TemplateCodeEditor code={form.code} height={760} isDarkTheme onChange={(code) => setField("code", code)} />
+          <TemplateCodeEditor code={form.code} height="calc(100vh - 280px)" isDarkTheme onChange={(code) => setField("code", code)} />
         </div>
 
         <div className="lg:col-span-2">

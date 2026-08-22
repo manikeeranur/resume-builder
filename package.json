@@ -32,6 +32,8 @@
     "emoji-picker-react": "^4.19.1",
     "framer-motion": "^13.1.0",
     "lucide-react": "^1.28.0",
+    "monaco-editor": "0.52.2",
+    "monaco-tailwindcss": "^0.6.1",
     "mongoose": "^9.8.1",
     "next": "14.2.35",
     "next-auth": "^4.24.11",

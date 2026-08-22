@@ -1,8 +1,8 @@
-import TemplateEditorForm from "@/components/admin/templates/TemplateEditorForm";
+import { redirect } from "next/navigation";
 
-// params.id is either a real Template _id (edit) or the literal "new" —
-// TemplateEditorForm handles both, so /admin/templates/new needs no
-// separate route.
+// The template editor is now a distraction-free full page outside the admin
+// sidebar chrome (see app/admin/templates/editor/[id]) — this old in-sidebar
+// route just forwards old links/bookmarks there.
 export default function TemplateEditorPage({ params }) {
-  return <TemplateEditorForm templateDocId={params.id} />;
+  redirect(`/admin/templates/editor/${params.id}`);
 }

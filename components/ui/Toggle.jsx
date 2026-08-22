@@ -5,8 +5,12 @@
 // app looks and behaves the same — a real button[role=switch] rather than
 // a disguised checkbox, so it's keyboard/screen-reader operable natively.
 export default function Toggle({ checked, onChange, label, ariaLabel }) {
+  // gap-2 is a no-op for the common full-width/justify-between usage
+  // (space-between already exceeds it there) but is what gives a compact
+  // inline-block usage — see AdminUsersTable.jsx — breathing room between
+  // the label and the switch instead of them touching.
   return (
-    <div className="flex items-center justify-between py-1.5">
+    <div className="flex items-center justify-between gap-2 py-1.5">
       <span className="text-sm text-text">{label}</span>
       <button
         type="button"

@@ -178,7 +178,7 @@ export default function TemplatesTable() {
         ) : (
           <CustomThreeDotMenu
             actions={[
-              { label: "Edit", icon: <Pencil size={14} />, onClick: () => router.push(`/admin/templates/${t._id}`) },
+              { label: "Edit", icon: <Pencil size={14} />, onClick: () => window.open(`/admin/templates/editor/${t._id}`, "_blank", "noopener,noreferrer") },
               {
                 label: "Delete",
                 icon: <Trash2 size={14} />,

@@ -14,7 +14,9 @@ export default function AdminTemplatesPage() {
           </p>
         </div>
         <Link
-          href="/admin/templates/new"
+          href="/admin/templates/editor/new"
+          target="_blank"
+          rel="noopener noreferrer"
           className="btn-primary flex shrink-0 items-center gap-2 px-4 py-2.5 text-sm"
         >
           <Plus size={16} />

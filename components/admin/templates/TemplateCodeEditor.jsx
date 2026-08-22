@@ -12,7 +12,28 @@ import { IconArrowsDiagonal } from "@tabler/icons-react";
 // (via the embedded TypeScript language service), same minimap, same
 // bracket-pair colorization, same keybindings. Dynamically imported with
 // ssr:false since Monaco needs the DOM/web workers at load time.
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+//
+// Self-hosting `monaco-editor` (instead of @monaco-editor/react's default
+// CDN load) is what lets monacoTailwindSetup register the real Tailwind CSS
+// language service — className autocomplete and hover-for-generated-CSS,
+// same engine as VS Code's own Tailwind CSS IntelliSense extension — onto
+// this exact editor instance. `loader.config({ monaco })` below must run,
+// and Tailwind must be wired up, before `@monaco-editor/react`'s `Editor`
+// resolves and mounts, or it falls back to fetching a bare Monaco from the
+// CDN with no Tailwind support. Chaining it all inside this one dynamic
+// import's promise (rather than e.g. a useEffect) guarantees that order.
+const MonacoEditor = dynamic(
+  async () => {
+    const [reactMonaco, { ensureMonacoTailwindConfigured }] = await Promise.all([
+      import("@monaco-editor/react"),
+      import("./monacoTailwindSetup"),
+    ]);
+    const monaco = ensureMonacoTailwindConfigured();
+    reactMonaco.loader.config({ monaco });
+    return reactMonaco;
+  },
+  { ssr: false }
+);
 
 function ExpandModal({ onClose, children }) {
   useEffect(() => {
@@ -155,6 +176,12 @@ export default function TemplateCodeEditor({
             bracketPairColorization: { enabled: true },
             renderLineHighlight: "line",
             padding: { top: 16, bottom: 16 },
+            // Monaco's JS/JSX language defaults to no quick-suggestions
+            // inside string literals (most string content isn't code) — but
+            // that's exactly where Tailwind className values live, so it's
+            // turned back on here to match real VS Code's Tailwind
+            // IntelliSense, which suggests classes as you type them.
+            quickSuggestions: { other: true, comments: false, strings: true },
           }}
           loading={
             <div className="flex items-center justify-center text-sm text-text-secondary" style={{ height: editorHeight }}>
