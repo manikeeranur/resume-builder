@@ -50,14 +50,14 @@ export default function ResumeCard({ resume, pdfData }) {
               <button
                 type="button"
                 onClick={() => setConfirmOpen(false)}
-                className="btn-secondary px-3 py-1.5 text-xs"
+                className="btn-secondary cursor-pointer px-3 py-1.5 text-xs"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDelete}
-                className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-700"
+                className="cursor-pointer rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-700"
               >
                 Yes, delete
               </button>
@@ -115,7 +115,7 @@ export default function ResumeCard({ resume, pdfData }) {
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            disabled={deleting || previewLoading}
+            disabled={deleting}
             title="Delete"
             aria-label="Delete resume"
             className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border border-border text-red-600 transition-colors hover:border-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
