@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
@@ -21,6 +21,7 @@ export default function ResumeCard({ resume, pdfData }) {
   const previewLoading = pdfData === null;
 
   const handleDelete = async () => {
+    if (deleting) return; // already in flight — ignore extra clicks instead of disabling the button
     setConfirmOpen(false);
     setDeleting(true);
     try {
@@ -33,17 +34,37 @@ export default function ResumeCard({ resume, pdfData }) {
     }
   };
 
+  // Safety net: the resume is deleted server-side the moment the request
+  // above succeeds — this card only lingers on screen until router.refresh()
+  // re-renders the parent without it. If that's ever slow (a sluggish
+  // revalidation, a flaky network), the "Deleting…" overlay would otherwise
+  // block this card indefinitely with no way back in. Clearing it after a
+  // few seconds guarantees the card is always interactable again, even in
+  // that edge case — the resume itself is already gone either way.
+  useEffect(() => {
+    if (!deleting) return;
+    const t = setTimeout(() => setDeleting(false), 4000);
+    return () => clearTimeout(t);
+  }, [deleting]);
+
   return (
     <div className="card flex flex-col overflow-hidden">
       <div className="relative overflow-hidden border-b border-border">
         <ExactFirstPagePreview resume={resume} pdfData={pdfData} />
         {deleting && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-xs font-semibold text-primary">
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/80 text-xs font-semibold text-primary">
             Deleting…
           </div>
         )}
         {confirmOpen && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/95 p-4 text-center">
+          // z-30: react-pdf renders its own textLayer over the PDF canvas
+          // (for text selection) that isn't guaranteed to stack below plain
+          // DOM siblings — without an explicit z-index here, that layer can
+          // sit above this overlay in actual hit-testing even though it's
+          // visually behind it, silently eating clicks meant for Cancel/
+          // Yes, delete and showing the text-selection cursor instead of
+          // pointer.
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-white/95 p-4 text-center">
             <p className="text-sm font-semibold text-text">Delete this resume?</p>
             <p className="text-xs text-text-secondary">This can&apos;t be undone.</p>
             <div className="mt-1 flex gap-2">
@@ -115,10 +136,9 @@ export default function ResumeCard({ resume, pdfData }) {
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            disabled={deleting}
             title="Delete"
             aria-label="Delete resume"
-            className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border border-border text-red-600 transition-colors hover:border-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-[34px] w-[34px] shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border text-red-600 transition-colors hover:border-red-600 hover:bg-red-50"
           >
             <IconTrash size={16} stroke={2} />
           </button>
