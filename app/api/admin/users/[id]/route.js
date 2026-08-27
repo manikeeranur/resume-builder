@@ -39,6 +39,10 @@ export async function GET(req, { params }) {
     // Every download this user has ever confirmed, newest first — capped at
     // 200 so a heavy downloader's history stays a reasonable payload; the
     // running total below still reflects their true lifetime count.
+    // resumeTitle/templateId/hasSnapshot are the durable copy captured at
+    // download time — resumeId is still populated as a fallback for rows
+    // logged before that snapshot existed, so old history doesn't regress
+    // to "(deleted resume)" for resumes that are, in fact, still around.
     PdfDownloadLog.find({ userId: user._id })
       .sort({ createdAt: -1 })
       .limit(200)
@@ -98,13 +102,22 @@ export async function GET(req, { params }) {
     })),
     downloads: {
       total: downloadCount,
-      recent: downloadLogs.map((d) => ({
-        _id: d._id,
-        createdAt: d.createdAt,
-        resumeId: d.resumeId?._id || null,
-        resumeTitle: d.resumeId?.title || "(deleted resume)",
-        templateName: d.resumeId ? templateName(d.resumeId.templateId) : null,
-      })),
+      recent: downloadLogs.map((d) => {
+        // Prefer the snapshot captured at download time — accurate even
+        // after the user deletes the resume. Only rows logged before that
+        // snapshot existed fall back to the live (and possibly now-null)
+        // populated resume.
+        const title = d.resumeTitle || d.resumeId?.title || "(deleted resume)";
+        const tId = d.templateId || d.resumeId?.templateId;
+        return {
+          _id: d._id,
+          createdAt: d.createdAt,
+          resumeId: d.resumeId?._id || null,
+          resumeTitle: title,
+          templateName: tId ? templateName(tId) : null,
+          hasSnapshot: d.hasSnapshot,
+        };
+      }),
     },
   });
 }

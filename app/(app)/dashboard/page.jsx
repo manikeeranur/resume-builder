@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Resume from "@/lib/models/Resume";
 import Profile from "@/lib/models/Profile";
+import PdfDownloadLog from "@/lib/models/PdfDownloadLog";
 import ResumeGrid from "@/components/dashboard/ResumeGrid";
 import StatCard from "@/components/dashboard/StatCard";
 import { profileCompleteness } from "@/lib/profileCompleteness";
@@ -16,14 +17,19 @@ export default async function DashboardPage() {
   if (!session) redirect("/templates");
 
   await dbConnect();
-  const [resumes, profile, totalResumes, allDownloadCounts] = await Promise.all([
+  const [resumes, profile, totalResumes, totalDownloads] = await Promise.all([
     Resume.find({ userId: session.user.id }).sort({ createdAt: -1 }).limit(4),
     Profile.findOne({ userId: session.user.id }),
     // Recent widget below only fetches 4 — this stat needs the true total.
     Resume.countDocuments({ userId: session.user.id }),
-    Resume.find({ userId: session.user.id }).select("downloadCount"),
+    // PdfDownloadLog, not Resume.downloadCount summed across currently-
+    // existing resumes — that summed only whatever resumes hadn't been
+    // deleted yet, so "Total Downloads" visibly dropped every time a user
+    // deleted a resume they'd previously downloaded. The log is a
+    // standalone historical record (see its model) and isn't affected by a
+    // resume's deletion, so this stays a true lifetime total.
+    PdfDownloadLog.countDocuments({ userId: session.user.id }),
   ]);
-  const totalDownloads = allDownloadCounts.reduce((sum, r) => sum + (r.downloadCount || 0), 0);
   const completeness = profileCompleteness(profile?.sections || emptyResumeSections);
 
   const stats = [

@@ -69,6 +69,14 @@ export async function GET(req, { params }) {
 // live preview/theme-modal/dashboard-card viewers, which must keep working
 // even once a free user is at their limit; only a real, completed download
 // (this POST) counts against it.
+//
+// The client sends the exact bytes it already got back from its own GET
+// call as the request body — reusing them here instead of re-rendering the
+// PDF a second time, purely so this row can keep a permanent snapshot (see
+// PdfDownloadLog.pdfSnapshot) admin can pull up later even after the user
+// deletes the resume itself. The body is optional: if it's missing (an
+// older client, or a non-PDF/oversized payload) the download and its count
+// still go through, just without a re-downloadable snapshot for this row.
 export async function POST(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -88,7 +96,22 @@ export async function POST(req, { params }) {
       );
     }
 
-    await recordPdfDownload(session.user.id, params.id);
+    let pdfBuffer;
+    if (req.headers.get("content-type") === "application/pdf") {
+      const bytes = await req.arrayBuffer();
+      // Sanity-check it's actually a PDF and not, say, an empty/aborted
+      // body — a snapshot is a nice-to-have, never worth failing the
+      // download or its count over.
+      if (bytes.byteLength > 0 && bytes.byteLength < 20 * 1024 * 1024) {
+        pdfBuffer = Buffer.from(bytes);
+      }
+    }
+
+    await recordPdfDownload(session.user.id, params.id, {
+      resumeTitle: resume.title,
+      templateId: resume.templateId,
+      pdfBuffer,
+    });
     // timestamps: false — a download doesn't change the resume's content, so
     // it shouldn't bump updatedAt and invalidate the cached preview PDF.
     await Resume.updateOne({ _id: params.id }, { $inc: { downloadCount: 1 } }, { timestamps: false });

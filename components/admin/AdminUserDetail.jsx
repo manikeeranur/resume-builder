@@ -229,6 +229,21 @@ function DownloadsTable({ downloads }) {
           <span className="text-text-secondary">—</span>
         ),
     },
+    {
+      key: "pdf",
+      title: "PDF",
+      render: (d) =>
+        d.hasSnapshot ? (
+          <a
+            href={`/api/admin/download-logs/${d._id}/pdf`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          >
+            <Download size={13} /> Download
+          </a>
+        ) : (
+          <span className="text-text-secondary">—</span>
+        ),
+    },
   ];
   if (!downloads.length) {
     return (
