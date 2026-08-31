@@ -58,6 +58,8 @@ const PLANS = [
   },
 ];
 
+
+
 async function main() {
   if (!process.env.MONGO_URI) {
     throw new Error("MONGO_URI is not set — run with: node --env-file=.env scripts/seedPlans.mjs");
