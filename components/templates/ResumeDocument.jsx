@@ -87,6 +87,13 @@ export default function ResumeDocument({ resume, watermark = false, watermarkTex
 
   return (
     <TemplateErrorBoundary>
+      {/* Per-template utility CSS compiled on demand (see
+          app/api/templates/[templateId]/code). Lets a class an admin adds
+          to a dynamic template go live immediately — the app's built-once
+          stylesheet only has rules for classes that existed at deploy time,
+          so without this a post-deploy edit renders unstyled until the next
+          deploy. Empty for built-in templates. */}
+      {dynamicTemplate.css ? <style dangerouslySetInnerHTML={{ __html: dynamicTemplate.css }} /> : null}
       <Component resume={resume} />
       {watermark && <Watermark text={watermarkText} />}
     </TemplateErrorBoundary>
