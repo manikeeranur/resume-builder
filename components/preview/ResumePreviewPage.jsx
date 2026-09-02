@@ -4,11 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye } from "lucide-react";
-import { IconPalette, IconDownload } from "@tabler/icons-react";
+import { IconPalette, IconDownload, IconFileTypePdf, IconPhoto } from "@tabler/icons-react";
 import TopBar from "@/components/layout/TopBar";
 import ThemeModal from "@/components/editor/ThemeModal";
 import RippleButton from "@/components/ui/RippleButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/components/ui/dropdown-menu";
 import { downloadResumePdf } from "@/lib/downloadResumePdf";
+import { downloadResumePng } from "@/lib/downloadResumePng";
 import { useToast } from "@/components/providers/ToastProvider";
 
 // pdf.js touches browser-only APIs (e.g. DOMMatrix) that don't exist during
@@ -46,12 +53,16 @@ export default function ResumePreviewPage({ resume: initialResume }) {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  const handleDownload = async () => {
+  const handleDownload = async (format) => {
     setDownloading(true);
     try {
-      await downloadResumePdf(resume);
+      if (format === "png") {
+        await downloadResumePng(resume);
+      } else {
+        await downloadResumePdf(resume);
+      }
     } catch (err) {
-      toast(err.message || "Failed to download PDF. Please try again.", { type: "error" });
+      toast(err.message || "Download failed. Please try again.", { type: "error" });
     } finally {
       setDownloading(false);
     }
@@ -70,17 +81,28 @@ export default function ResumePreviewPage({ resume: initialResume }) {
         <span className="hidden sm:inline">Theme</span>
       </RippleButton>
 
-      <RippleButton
-        type="button"
-        onClick={handleDownload}
-        disabled={downloading}
-        aria-label={downloading ? "Downloading…" : "Download"}
-        className="btn-secondary flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-4 sm:text-sm"
-        style={{ borderRadius: "9999px" }}
-      >
-        <IconDownload size={16} stroke={1.75} />
-        <span className="hidden sm:inline">{downloading ? "Downloading…" : "Download"}</span>
-      </RippleButton>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          type="button"
+          disabled={downloading}
+          aria-label={downloading ? "Downloading…" : "Download"}
+          className="btn-secondary flex items-center gap-1.5 px-2.5 py-2 text-xs disabled:opacity-60 sm:px-4 sm:text-sm"
+          style={{ borderRadius: "9999px" }}
+        >
+          <IconDownload size={16} stroke={1.75} />
+          <span className="hidden sm:inline">{downloading ? "Downloading…" : "Download"}</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem className="cursor-pointer" onClick={() => handleDownload("pdf")}>
+            <IconFileTypePdf size={16} stroke={1.75} />
+            <span>PDF</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer" onClick={() => handleDownload("png")}>
+            <IconPhoto size={16} stroke={1.75} />
+            <span>PNG · HD (page 1)</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   );
 
