@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Resume from "@/lib/models/Resume";
-import { launchBrowser } from "@/lib/launchBrowser";
+import { launchBrowser, resolveOrigin } from "@/lib/launchBrowser";
 import { renderResumePdf } from "@/lib/renderResumePdf";
 
 export const runtime = "nodejs";
@@ -69,7 +69,7 @@ export async function POST(req) {
   }
 
   if (stale.length > 0) {
-    const origin = new URL(req.url).origin || process.env.NEXTAUTH_URL;
+    const origin = resolveOrigin(req);
     let browser = null;
     try {
       browser = await launchBrowser();

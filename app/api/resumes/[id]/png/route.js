@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOwnedResume } from "@/lib/getOwnedResume";
-import { launchBrowser, forwardCookies } from "@/lib/launchBrowser";
+import { launchBrowser, forwardCookies, resolveOrigin } from "@/lib/launchBrowser";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,8 +32,8 @@ export async function GET(req, { params }) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1024, height: 1400, deviceScaleFactor: DEVICE_SCALE });
 
-    // Prefer the incoming request's own origin — see pdf/route.js for why.
-    const origin = new URL(req.url).origin || process.env.NEXTAUTH_URL;
+    // See resolveOrigin() for why this isn't just `new URL(req.url).origin`.
+    const origin = resolveOrigin(req);
     await forwardCookies(page, req, origin);
 
     await page.goto(`${origin}/resumes/${params.id}/print`, {

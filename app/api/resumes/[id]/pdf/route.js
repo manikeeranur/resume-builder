@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOwnedResume } from "@/lib/getOwnedResume";
-import { launchBrowser } from "@/lib/launchBrowser";
+import { launchBrowser, resolveOrigin } from "@/lib/launchBrowser";
 import { renderResumePdf } from "@/lib/renderResumePdf";
 import Resume from "@/lib/models/Resume";
 import { checkDownloadLimit, recordPdfDownload } from "@/lib/subscription/check-download-limit";
@@ -23,12 +23,8 @@ export async function GET(req, { params }) {
   try {
     browser = await launchBrowser();
 
-    // Prefer the incoming request's own origin — it's always correct,
-    // whereas NEXTAUTH_URL is a manually-set env var that can drift out of
-    // sync with the actual deployment URL (e.g. still pointing at
-    // localhost in production) and would otherwise send Puppeteer to an
-    // unreachable host.
-    const origin = new URL(req.url).origin || process.env.NEXTAUTH_URL;
+    // See resolveOrigin() for why this isn't just `new URL(req.url).origin`.
+    const origin = resolveOrigin(req);
 
     const pdfBuffer = await renderResumePdf(browser, {
       resumeId: params.id,

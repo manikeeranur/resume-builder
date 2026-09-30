@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Template from "@/lib/models/Template";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { launchBrowser } from "@/lib/launchBrowser";
+import { launchBrowser, resolveOrigin } from "@/lib/launchBrowser";
 import { renderPageToPdf } from "@/lib/renderResumePdf";
 
 export const runtime = "nodejs";
@@ -28,7 +28,7 @@ export async function GET(req, { params }) {
   let browser = null;
   try {
     browser = await launchBrowser();
-    const origin = new URL(req.url).origin || process.env.NEXTAUTH_URL;
+    const origin = resolveOrigin(req);
 
     const pdfBuffer = await renderPageToPdf(browser, {
       url: `${origin}/admin/templates/preview/${template.templateId}${isDraft ? "?draft=1" : ""}`,

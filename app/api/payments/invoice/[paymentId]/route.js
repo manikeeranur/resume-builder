@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getInvoiceData } from "@/lib/invoice";
-import { launchBrowser } from "@/lib/launchBrowser";
+import { launchBrowser, resolveOrigin } from "@/lib/launchBrowser";
 import { renderInvoicePdf } from "@/lib/renderInvoicePdf";
 
 export const runtime = "nodejs";
@@ -24,7 +24,7 @@ export async function GET(req, { params }) {
   let browser = null;
   try {
     browser = await launchBrowser();
-    const origin = new URL(req.url).origin || process.env.NEXTAUTH_URL;
+    const origin = resolveOrigin(req);
     const pdfBuffer = await renderInvoicePdf(browser, { paymentId: params.paymentId, origin, req });
 
     return new NextResponse(pdfBuffer, {
