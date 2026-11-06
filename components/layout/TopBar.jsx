@@ -6,10 +6,13 @@ import { ArrowLeft } from "lucide-react";
 // reachable from more than one place (e.g. Preview, opened from the
 // dashboard, the resumes list, or elsewhere) where a fixed destination
 // would be wrong. Pass exactly one.
+// Sticky under the shell's TopNavbar (67px tall, z-10, shown from lg up) and
+// deliberately below it in z-order, so the navbar's user/logout dropdown
+// opens over this bar instead of behind it.
 export default function TopBar({ backHref, onBack, title, subtitle, children, size = "sm" }) {
   const titleClass = size === "lg" ? "text-xl sm:text-2xl" : "text-sm sm:text-base";
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-border bg-white/95 px-4 py-3 backdrop-blur-md sm:px-6">
+    <div className="z-[5] flex items-center justify-between gap-4 border-b border-border bg-white/95 px-4 py-3 backdrop-blur-md sm:px-6 md:sticky md:top-0 lg:top-[67px]">
       <div className="flex min-w-0 items-center gap-3">
         {onBack ? (
           <button

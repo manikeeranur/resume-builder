@@ -3,10 +3,31 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOwnedResume } from "@/lib/getOwnedResume";
-import { launchBrowser, resolveOrigin } from "@/lib/launchBrowser";
+import { getBrowser, resolveOrigin } from "@/lib/launchBrowser";
 import { renderResumePdf } from "@/lib/renderResumePdf";
+import { isServerRenderable, renderResumeHtml } from "@/lib/renderResumeHtml";
 import Resume from "@/lib/models/Resume";
 import { checkDownloadLimit, recordPdfDownload } from "@/lib/subscription/check-download-limit";
+import { checkFeatureAccess } from "@/lib/subscription/check-feature-access";
+
+// Rendered PDFs, reused while the resume is unchanged. Keyed by everything
+// the output depends on: the resume's last save (updatedAt — content, theme
+// and template all bump it), the page range, and the viewer's watermark.
+// A short TTL bounds staleness for things that don't bump updatedAt (an
+// admin editing a dynamic template's code). Per server process, in memory.
+const PDF_CACHE_TTL_MS = 10 * 60 * 1000;
+const PDF_CACHE_MAX = 50;
+const pdfCache = globalThis.__resumePdfCache ?? (globalThis.__resumePdfCache = new Map());
+function cacheGet(key) {
+  const hit = pdfCache.get(key);
+  if (!hit || Date.now() - hit.at > PDF_CACHE_TTL_MS) return null;
+  return hit.buf;
+}
+function cacheSet(key, buf) {
+  pdfCache.delete(key);
+  pdfCache.set(key, { at: Date.now(), buf });
+  while (pdfCache.size > PDF_CACHE_MAX) pdfCache.delete(pdfCache.keys().next().value);
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,19 +40,36 @@ export async function GET(req, { params }) {
   const resume = await getOwnedResume(params.id, session.user.id);
   if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  let browser = null;
+  // ?pages=1 → first page only: the editor/theme-modal previews only ever
+  // show page 1, so rendering the rest was wasted work on every autosave.
+  const firstPageOnly = new URL(req.url).searchParams.get("pages") === "1";
   try {
-    browser = await launchBrowser();
+    const access = await checkFeatureAccess(session.user.id);
+    const cacheKey = [params.id, new Date(resume.updatedAt || 0).getTime(), firstPageOnly ? "p1" : "all", access.shouldWatermark ? "wm" : "clean"].join("|");
+    let pdfBuffer = cacheGet(cacheKey);
 
-    // See resolveOrigin() for why this isn't just `new URL(req.url).origin`.
-    const origin = resolveOrigin(req);
-
-    const pdfBuffer = await renderResumePdf(browser, {
-      resumeId: params.id,
-      templateId: resume.templateId,
-      origin,
-      req,
-    });
+    if (!pdfBuffer) {
+      const browser = await getBrowser();
+      // See resolveOrigin() for why this isn't just `new URL(req.url).origin`.
+      const origin = resolveOrigin(req);
+      // Built-in templates: render HTML on the server and hand it to Chromium
+      // directly (fast path). Admin-created templates still load /print.
+      const html = isServerRenderable(resume.templateId)
+        ? await renderResumeHtml(resume.toObject(), {
+            watermark: access.shouldWatermark,
+            watermarkText: process.env.WATERMARK_TEXT || "ResumePro",
+          })
+        : undefined;
+      pdfBuffer = await renderResumePdf(browser, {
+        html,
+        resumeId: params.id,
+        templateId: resume.templateId,
+        origin,
+        req,
+        ...(firstPageOnly ? { pageRanges: "1" } : {}),
+      });
+      cacheSet(cacheKey, pdfBuffer);
+    }
     const filename = `${(resume.title || "Resume").replace(/[^a-z0-9]+/gi, "_")}.pdf`;
 
     return new NextResponse(pdfBuffer, {
@@ -49,13 +87,9 @@ export async function GET(req, { params }) {
   } catch (err) {
     console.error("PDF generation error:", err.message);
     return NextResponse.json({ error: "Failed to generate PDF", detail: err.message }, { status: 500 });
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (_) {}
-    }
   }
+  // The shared browser stays open for the next request; renderPageToPdf
+  // closes its own tab.
 }
 
 // Called by the explicit "Download" button (not the in-page PDF viewer,

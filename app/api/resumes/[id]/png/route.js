@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOwnedResume } from "@/lib/getOwnedResume";
-import { launchBrowser, forwardCookies, resolveOrigin } from "@/lib/launchBrowser";
+import { getBrowser, forwardCookies, resolveOrigin } from "@/lib/launchBrowser";
+import { isServerRenderable, renderResumeHtml } from "@/lib/renderResumeHtml";
+import { checkFeatureAccess } from "@/lib/subscription/check-feature-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,20 +28,30 @@ export async function GET(req, { params }) {
   const resume = await getOwnedResume(params.id, session.user.id);
   if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  let browser = null;
+  let page = null;
   try {
-    browser = await launchBrowser();
-    const page = await browser.newPage();
+    const browser = await getBrowser();
+    page = await browser.newPage();
     await page.setViewport({ width: 1024, height: 1400, deviceScaleFactor: DEVICE_SCALE });
 
-    // See resolveOrigin() for why this isn't just `new URL(req.url).origin`.
-    const origin = resolveOrigin(req);
-    await forwardCookies(page, req, origin);
-
-    await page.goto(`${origin}/resumes/${params.id}/print`, {
-      waitUntil: "networkidle0",
-      timeout: 60000,
-    });
+    if (isServerRenderable(resume.templateId)) {
+      // Fast path: server-rendered HTML straight into Chromium (see lib/renderResumeHtml.js).
+      const access = await checkFeatureAccess(session.user.id);
+      const html = await renderResumeHtml(resume.toObject(), {
+        watermark: access.shouldWatermark,
+        watermarkText: process.env.WATERMARK_TEXT || "ResumePro",
+      });
+      await page.setContent(html, { waitUntil: "load", timeout: 60000 });
+    } else {
+      // See resolveOrigin() for why this isn't just `new URL(req.url).origin`.
+      const origin = resolveOrigin(req);
+      await forwardCookies(page, req, origin);
+      // See renderResumePdf.js for why "load" instead of "networkidle0".
+      await page.goto(`${origin}/resumes/${params.id}/print`, {
+        waitUntil: "load",
+        timeout: 60000,
+      });
+    }
     await page.waitForSelector("#resume-content", { timeout: 30000 });
 
     // See renderResumePdf.js for why both waits are needed — without them
@@ -81,6 +93,8 @@ export async function GET(req, { params }) {
 
     const pngData = await page.screenshot({
       type: "png",
+      // Faster PNG encoding at the same 3× resolution (slightly larger file).
+      optimizeForSpeed: true,
       clip: {
         x: Math.max(0, box.x),
         y: Math.max(0, box.y),
@@ -108,10 +122,7 @@ export async function GET(req, { params }) {
     console.error("PNG generation error:", err.message);
     return NextResponse.json({ error: "Failed to generate PNG", detail: err.message }, { status: 500 });
   } finally {
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (_) {}
-    }
+    // Close only this tab; the shared browser is reused by the next request.
+    if (page) await page.close().catch(() => {});
   }
 }

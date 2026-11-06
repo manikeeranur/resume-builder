@@ -6,7 +6,13 @@ import { CheckCircle2, Pencil } from "lucide-react";
 import TopBar from "@/components/layout/TopBar";
 import SectionForm from "./SectionForm";
 import ThemeModal from "./ThemeModal";
-import ExactFirstPagePreview from "./LazyExactFirstPagePreview";
+import dynamic from "next/dynamic";
+
+// pdf.js needs browser-only APIs, so the editor preview is client-only.
+const EditorPdfPreview = dynamic(() => import("./EditorPdfPreview"), {
+  ssr: false,
+  loading: () => <div className="h-[calc(100vh-9rem)] rounded-lg border border-border bg-bg" />,
+});
 import LoginModal from "@/components/auth/LoginModal";
 import { SECTION_LIST } from "@/lib/resumeDefaults";
 import { SECTION_ICONS } from "@/lib/sectionIcons";
@@ -111,18 +117,40 @@ export default function ResumeEditor({ resume: initialResume, localId, googleEna
   }
 
   const statusLabel = { saved: "All changes saved", saving: "Saving…", unsaved: "Unsaved changes" }[status];
-  const pi = resume.sections.personalInfo || {};
-  const initials = (pi.fullName || resume.title || "?")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
-    .join("");
   const templateName = getTemplate(resume.templateId).name;
 
   return (
-    <>
-      <TopBar backHref={isLocal ? "/templates" : "/dashboard"} title={resume.title} subtitle={statusLabel}>
+    // Large screens: the editor fills exactly the screen below the shell's
+    // 67px TopNavbar — no page scroll.
+    // Only the left column (sections + form) scrolls; the preview stays put.
+    <div className="lg:flex lg:h-[calc(100vh-67px)] lg:flex-col">
+      <TopBar
+        backHref={isLocal ? "/templates" : "/dashboard"}
+        title={
+          editingTitle ? (
+            <input
+              autoFocus
+              value={resume.title}
+              onChange={(e) => setResume((prev) => ({ ...prev, title: e.target.value }))}
+              onBlur={() => setEditingTitle(false)}
+              onKeyDown={(e) => e.key === "Enter" && setEditingTitle(false)}
+              aria-label="Resume title"
+              className="w-full max-w-xs rounded-md border border-border px-2 py-0.5 text-base font-bold text-text outline-none focus:border-primary"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingTitle(true)}
+              title="Rename resume"
+              className="group inline-flex max-w-full items-center gap-1.5"
+            >
+              <span className="truncate">{resume.title}</span>
+              <Pencil size={13} className="shrink-0 text-text-secondary group-hover:text-primary" />
+            </button>
+          )
+        }
+        subtitle={`${templateName} · ${statusLabel}`}
+      >
         <button
           type="button"
           onClick={() => setThemeModalOpen(true)}
@@ -155,59 +183,20 @@ export default function ResumeEditor({ resume: initialResume, localId, googleEna
         <LoginModal googleEnabled={googleEnabled} onClose={() => setLoginModalOpen(false)} onSuccess={() => setLoginModalOpen(false)} />
       )}
 
-      <div className="mx-auto max-w-[1300px] px-4 pt-6 sm:px-6">
-        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-[#8a7cf0] p-6 text-white shadow-card-lg sm:p-8">
-          <div className="flex flex-col items-center gap-5 sm:flex-row">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white/30 bg-white/15 text-2xl font-bold sm:h-24 sm:w-24">
-              {pi.photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={pi.photo} alt={pi.fullName} className="h-full w-full object-cover" />
-              ) : (
-                initials || "?"
-              )}
+      {/* Two columns: left = sections/form (scrolls), right = preview (fixed). */}
+      <div className="flex w-full gap-6 px-4 py-6 sm:px-6 lg:min-h-0 lg:flex-1">
+      <div className="min-w-0 flex-1 lg:overflow-y-auto lg:pr-1">
+      <div className="flex w-full flex-col gap-6 md:flex-row">
+        <nav className="md:w-56 md:shrink-0">
+          <div className="card mb-3 px-3 py-2.5">
+            <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-text-secondary">
+              <span>Completeness</span>
+              <span className="text-primary">{completeness.percent}%</span>
             </div>
-            <div className="min-w-0 flex-1 text-center sm:text-left">
-              {editingTitle ? (
-                <input
-                  autoFocus
-                  value={resume.title}
-                  onChange={(e) => setResume((prev) => ({ ...prev, title: e.target.value }))}
-                  onBlur={() => setEditingTitle(false)}
-                  onKeyDown={(e) => e.key === "Enter" && setEditingTitle(false)}
-                  className="w-full max-w-sm rounded-lg border border-white/40 bg-white/10 px-2 py-1 text-xl font-bold text-white placeholder-white/60 outline-none sm:text-2xl"
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setEditingTitle(true)}
-                  className="group inline-flex items-center gap-2 text-xl font-bold sm:text-2xl"
-                >
-                  <span className="truncate">{resume.title}</span>
-                  <Pencil size={15} className="shrink-0 text-white/60 group-hover:text-white" />
-                </button>
-              )}
-              <p className="text-sm text-white/80">
-                {templateName} · Updated {new Date(resume.updatedAt || Date.now()).toLocaleDateString()}
-              </p>
-              <div className="mt-4">
-                <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-white/85">
-                  <span>Resume completeness</span>
-                  <span>{completeness.percent}%</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
-                  <div
-                    className="h-full rounded-full bg-white transition-all duration-500"
-                    style={{ width: `${completeness.percent}%` }}
-                  />
-                </div>
-              </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg">
+              <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${completeness.percent}%` }} />
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="mx-auto flex max-w-[1300px] flex-col gap-6 px-4 py-6 sm:px-6 md:flex-row">
-        <nav className="md:w-56 md:shrink-0">
           <div className="card flex gap-1 overflow-x-auto p-2 md:block md:space-y-1 md:overflow-visible">
             {SECTION_LIST.map((s) => {
               const Icon = SECTION_ICONS[s.key];
@@ -253,12 +242,14 @@ export default function ResumeEditor({ resume: initialResume, localId, googleEna
             />
           </div>
         </div>
+      </div>
+      </div>
 
-        <div className="hidden w-[340px] shrink-0 lg:block">
-          <div className="sticky top-20">
+        <div className="hidden shrink-0 lg:block">
+          <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Preview</p>
             {isLocal ? (
-              <div className="relative flex aspect-[210/297] items-center justify-center overflow-hidden rounded-lg border border-border bg-bg">
+              <div className="relative flex aspect-[210/297] w-[340px] items-center justify-center overflow-hidden rounded-lg border border-border bg-bg">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={getTemplate(resume.templateId).thumbnail}
@@ -270,16 +261,17 @@ export default function ResumeEditor({ resume: initialResume, localId, googleEna
                 </span>
               </div>
             ) : (
-              <ExactFirstPagePreview key={pdfVersion} resume={resume} />
+              <EditorPdfPreview version={pdfVersion} resume={resume} />
             )}
-            <p className="mt-2 text-[11px] leading-snug text-text-secondary">
+            {/* w-0 min-w-full: the caption wraps to the page width instead of widening the column. */}
+            <p className="mt-2 w-0 min-w-full text-[11px] leading-snug text-text-secondary">
               {isLocal
                 ? "This exact preview needs your resume saved to an account — click Preview above to sign in."
-                : "Shows the exact first page of your saved resume. Updates a moment after you stop typing."}
+                : "Exactly as your PDF will look. Use Prev / Next for more pages; updates a moment after you stop typing."}
             </p>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

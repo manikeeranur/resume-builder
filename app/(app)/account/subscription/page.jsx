@@ -1,21 +1,19 @@
+import { getSession, getUserPlanCached } from "@/lib/requestCache";
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
 import { FileText } from "lucide-react";
-import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Payment from "@/lib/models/Payment";
 import TopBar from "@/components/layout/TopBar";
 import SubscriptionSummary from "@/components/subscription/SubscriptionSummary";
 import PaymentHistoryTable from "@/components/subscription/PaymentHistoryTable";
-import { getUserPlan } from "@/lib/subscription/get-user-plan";
 
 export default async function SubscriptionPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) redirect("/login");
 
   await dbConnect();
   const [{ plan, subscription }, payments] = await Promise.all([
-    getUserPlan(session.user.id),
+    getUserPlanCached(session.user.id),
     Payment.find({ userId: session.user.id }).sort({ createdAt: -1 }).populate("planId", "name"),
   ]);
 

@@ -5,7 +5,19 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import { getTemplate } from "@/lib/templates";
+
+// Shown until the PDF has loaded — the resume itself appears only once the
+// exact PDF is ready (no interim HTML render).
+function PdfLoading() {
+  return (
+    <div className="flex h-full items-center justify-center bg-bg">
+      <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-text-secondary shadow-card-lg">
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        Loading preview…
+      </span>
+    </div>
+  );
+}
 
 // Loaded from CDN (matching the bundled pdfjs-dist version) since pdf.js
 // needs its parsing/rendering work to run off the main thread.
@@ -26,29 +38,6 @@ const LARGE_SCREEN_QUERY = "(min-width: 1024px)";
 // text. Flooring this at 2 forces that headroom everywhere, not just on
 // high-DPI screens.
 const MIN_RENDER_SCALE = 2;
-
-// Shown in place of the real PDF while it's still generating: a small,
-// centered box with the static template preview image faintly showing
-// through (same image + style used everywhere else in the app the exact
-// PDF is loading — dashboard cards, editor Live Preview, Theme modal).
-function GhostPreview({ resume }) {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 bg-bg">
-      <div className="relative aspect-[210/297] w-56 overflow-hidden rounded-lg shadow-lg">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={getTemplate(resume.templateId).thumbnail}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover object-top opacity-25"
-        />
-      </div>
-      <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-text-secondary shadow-card-lg">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-        Generating preview…
-      </span>
-    </div>
-  );
-}
 
 export default function PdfViewer({ resume }) {
   const [numPages, setNumPages] = useState(null);
@@ -75,7 +64,7 @@ export default function PdfViewer({ resume }) {
   const maxWindowStart = Math.max(0, (numPages || 0) - windowSize);
 
   // The scrollable container only mounts once the PDF finishes loading
-  // (GhostPreview stands in for it until then), so a plain mount-time
+  // (PdfLoading stands in for it until then), so a plain mount-time
   // measurement would run against a still-null ref. Watching the node
   // itself with ResizeObserver (state, not just a ref, so this effect
   // re-runs once it actually appears) catches both that first paint and
@@ -136,7 +125,7 @@ export default function PdfViewer({ resume }) {
       key={resume._id}
       file={`/api/resumes/${resume._id}/pdf`}
       onLoadSuccess={({ numPages: n }) => setNumPages(n)}
-      loading={<GhostPreview resume={resume} />}
+      loading={<PdfLoading />}
       error={<p className="py-12 text-center text-sm text-red-500">Couldn't load the PDF preview.</p>}
       className="flex h-full items-stretch justify-center"
     >

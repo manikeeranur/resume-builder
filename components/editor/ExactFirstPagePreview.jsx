@@ -35,6 +35,10 @@ export default function ExactFirstPagePreview({ resume, pdfData }) {
   // Memoizing keeps the identity stable across renders this prop didn't
   // actually change for (e.g. the template list resolving above).
   const file = useMemo(
+    // Same URL as the Preview page / Download button on purpose: the server
+    // caches the rendered PDF per saved version, so the PDF generated here
+    // after an autosave is served instantly when the user opens Preview or
+    // downloads.
     () => (pdfData ? { data: pdfData } : `/api/resumes/${resume._id}/pdf`),
     [pdfData, resume._id]
   );

@@ -1,8 +1,7 @@
+import { getSession } from "@/lib/requestCache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
 import { FileText, Download, Eye, Target, Sparkles, FilePlus2 } from "lucide-react";
-import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Resume from "@/lib/models/Resume";
 import Profile from "@/lib/models/Profile";
@@ -13,7 +12,7 @@ import { profileCompleteness } from "@/lib/profileCompleteness";
 import { emptyResumeSections } from "@/lib/resumeDefaults";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) redirect("/templates");
 
   await dbConnect();

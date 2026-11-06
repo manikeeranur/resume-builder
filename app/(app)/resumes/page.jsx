@@ -1,9 +1,8 @@
+import { getSession } from "@/lib/requestCache";
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
 import { FileText, ChevronLeft, ChevronRight, FilePlus2 } from "lucide-react";
-import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Resume from "@/lib/models/Resume";
 import ResumeGrid from "@/components/dashboard/ResumeGrid";
@@ -14,7 +13,7 @@ import { getMergedTemplateList } from "@/lib/templatesServer";
 const PAGE_SIZE = 4;
 
 export default async function ResumesPage({ searchParams }) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) redirect("/templates");
 
   const page = Math.max(1, parseInt(searchParams?.page, 10) || 1);

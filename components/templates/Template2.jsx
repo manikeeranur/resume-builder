@@ -1,4 +1,4 @@
-import { Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "./icons";
 import { IconBrandGithub, IconBrandLinkedin } from "@tabler/icons-react";
 import { skillItems, dateRange, themeVars, formatMonthYear, formatFullDate } from "./helpers";
 import { totalExperienceDuration } from "@/lib/experienceDuration";
